@@ -6,25 +6,38 @@
 
   const CODE_KEY = 'snap.board.code';
   const LABEL_KEY = 'snap.board.lessonLabel';
+  const STYLE_KEY = 'snap.board.textStyle';
   const ANN_PREFIX = 'snap.ann.';
-  const FONT = '"Segoe UI", Arial, sans-serif';
   const POLL_MS = 15000;
+
+  const FONTS = {
+    sans: { name: 'Clean', css: '"Segoe UI", Arial, sans-serif' },
+    hand: { name: 'Handwriting', css: '"Patrick Hand", "Comic Sans MS", cursive' },
+    serif: { name: 'Serif', css: 'Georgia, "Times New Roman", serif' },
+    mono: { name: 'Typewriter', css: 'Consolas, "Courier New", monospace' },
+  };
+  const UI_FONT = FONTS.sans.css;
+  const TEXT_SIZES = { S: 28, M: 44, L: 68, XL: 100 }; // on-screen px when created
+  const LH = 1.2;
+  const uid = () => Math.random().toString(36).slice(2, 10);
 
   // ---------------------------------------------------------------------
   //  Icons
   // ---------------------------------------------------------------------
   const ICONS = {
     pan: '<path d="M12 3v18M3 12h18M12 3 9.5 5.5M12 3l2.5 2.5M12 21l-2.5-2.5M12 21l2.5-2.5M3 12l2.5-2.5M3 12l2.5 2.5M21 12l-2.5-2.5M21 12l-2.5 2.5"/>',
+    select: '<path d="M5 3l13 7.5-5.5 1.5L10 18z"/><path d="M13 12.5l4.5 6"/>',
     pen: '<path d="M4 20l1-4L16 5l3 3L8 19z"/><path d="M14 7l3 3"/>',
     hl: '<path d="M15.5 4.5l4 4-8 8-4-4z"/><path d="M7.5 12.5 5 15v2h2l2.5-2.5"/><path d="M3 21h18" stroke-width="3" opacity=".6"/>',
     arrow: '<path d="M5 19 19 5M10 5h9v9"/>',
     rect: '<rect x="4" y="6" width="16" height="12" rx="1"/>',
     ellipse: '<ellipse cx="12" cy="12" rx="9" ry="6.5"/>',
     text: '<path d="M5 7V5h14v2M12 5v14M9 19h6"/>',
-    tick: '<path d="M4 12.5l5 5L20 6.5"/>',
-    cross: '<path d="M6 6l12 12M18 6 6 18"/>',
     redact: '<rect x="3" y="8" width="18" height="8" rx="1" fill="currentColor"/>',
+    cover: '<rect x="3" y="4" width="18" height="16" rx="2" fill="currentColor" opacity=".3"/><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M10 10a2 2 0 1 1 2.5 1.9c-.4.2-.5.5-.5.9V14M12 16.5v.01"/>',
     eraser: '<path d="M8 20h12"/><path d="M5 15.5l9-9a2 2 0 0 1 2.8 0l2.2 2.2a2 2 0 0 1 0 2.8L12.5 18H7.5z"/><path d="M9 11.5l5 5"/>',
+    spot: '<circle cx="12" cy="12" r="5"/><path d="M12 2v2.5M12 19.5V22M2 12h2.5M19.5 12H22M4.9 4.9l1.8 1.8M17.3 17.3l1.8 1.8M4.9 19.1l1.8-1.8M17.3 6.7l1.8-1.8"/>',
+    laser: '<circle cx="18" cy="6" r="2.5" fill="currentColor"/><path d="M3 21c3-1 5-3 7-6s4-6 6-7.5" stroke-dasharray="2.5 3"/>',
     undo: '<path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/>',
     redo: '<path d="m15 14 5-5-5-5"/><path d="M20 9H9.5a5.5 5.5 0 0 0 0 11H13"/>',
     eye: '<path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>',
@@ -34,49 +47,67 @@
     zoomout: '<circle cx="11" cy="11" r="7"/><path d="M21 21l-5-5M8 11h6"/>',
     fit: '<path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/><rect x="8" y="8" width="8" height="8" rx="1"/>',
     rotate: '<path d="M20 12a8 8 0 1 1-2.34-5.66"/><path d="M20 4v5h-5"/>',
+    crop: '<path d="M6 2v16h16"/><path d="M2 6h16v16"/>',
+    grid: '<rect x="3" y="3" width="18" height="18" rx="1"/><path d="M9 3v18M15 3v18M3 9h18M3 15h18"/>',
     trash: '<path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/>',
     fullscreen: '<path d="M3 9V3h6M21 9V3h-6M3 15v6h6M21 15v6h-6"/>',
     compare: '<rect x="3" y="4" width="8" height="16" rx="1"/><rect x="13" y="4" width="8" height="16" rx="1"/>',
     phone: '<rect x="7" y="2" width="10" height="20" rx="2"/><path d="M11 18h2"/>',
-    image: '<rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="2"/><path d="M21 16l-5-5-9 9"/>',
+    add: '<path d="M12 5v14M5 12h14"/>',
     save: '<path d="M12 3v12M7 10l5 5 5-5M5 21h14"/>',
     stop: '<rect x="5" y="5" width="14" height="14" rx="2"/>',
     bolt: '<path d="M13 2 4 14h7l-1 8 9-12h-7z"/>',
+    timer: '<circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2.5M9 2h6"/>',
   };
   const icon = (n) => `<svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${ICONS[n] || ''}</svg>`;
 
   // ---------------------------------------------------------------------
-  //  Tool definitions
+  //  Tools, colours, sizes, stamps
   // ---------------------------------------------------------------------
   const TOOLS = [
-    { id: 'pan', name: 'Move / zoom (V)', key: 'v' },
+    { id: 'pan', name: 'Move / zoom (V). Tap a cover to reveal it.', key: 'v' },
+    { id: 'select', name: 'Select (S): tap a mark to move, resize, recolour or delete it', key: 's' },
     { id: 'pen', name: 'Pen (P)', key: 'p' },
     { id: 'hl', name: 'Highlighter (I)', key: 'i' },
     { id: 'arrow', name: 'Arrow (A)', key: 'a' },
     { id: 'rect', name: 'Box (B)', key: 'b' },
     { id: 'ellipse', name: 'Circle (C)', key: 'c' },
-    { id: 'text', name: 'Text (T)', key: 't' },
-    { id: 'tick', name: 'Tick stamp' },
-    { id: 'cross', name: 'Cross stamp' },
-    { id: 'redact', name: 'Redact (cover a name)' },
-    { id: 'eraser', name: 'Eraser (E) – tap or drag over a mark', key: 'e' },
+    { id: 'text', name: 'Text (T): tap to add, tap existing text to edit', key: 't' },
+    { id: 'stamp', name: 'Stamps (M): tap again to choose a stamp', key: 'm' },
+    { id: 'redact', name: 'Redact: cover a name' },
+    { id: 'cover', name: 'Hide & reveal (K): drag to cover, tap to reveal', key: 'k' },
+    { id: 'eraser', name: 'Eraser (E): tap or drag over a mark', key: 'e' },
+    { id: 'spot', name: 'Spotlight (O): drag a circle to focus on', key: 'o' },
+    { id: 'laser', name: 'Laser pointer (L): trail fades away', key: 'l' },
   ];
   const COLOURS = ['#e11d48', '#2563eb', '#16a34a', '#facc15', '#111827', '#ffffff'];
   const SIZES = {
-    s: { line: 4, font: 30, stamp: 56, dot: 8 },
-    m: { line: 8, font: 46, stamp: 90, dot: 14 },
-    l: { line: 16, font: 72, stamp: 140, dot: 22 },
+    s: { line: 4, stamp: 56, dot: 8 },
+    m: { line: 8, stamp: 90, dot: 14 },
+    l: { line: 16, stamp: 140, dot: 22 },
   };
+  const STAMPS = [
+    { id: 'tick', name: 'Tick' },
+    { id: 'cross', name: 'Cross' },
+    { id: 'question', name: 'Question mark' },
+    { id: 'star', name: 'Star' },
+    { id: 'num', name: 'Numbered steps 1, 2, 3…' },
+    { id: 'www', name: 'WWW: what went well' },
+    { id: 'ebi', name: 'EBI: even better if' },
+  ];
+  const COLOUR_LESS_TOOLS = ['pan', 'select', 'eraser', 'redact', 'cover', 'spot', 'laser'];
 
   // ---------------------------------------------------------------------
   //  State
   // ---------------------------------------------------------------------
   const state = {
     code: null,
-    snaps: [], // ordered oldest → newest
+    snaps: [],
     tool: 'pen',
     colour: COLOURS[0],
     size: 'm',
+    stamp: 'tick',
+    textStyle: Object.assign({ font: 'sans', bold: true, italic: false, bg: false, sizeKey: 'M' }, store.get(STYLE_KEY, {})),
     autoShow: true,
     compare: false,
     active: 0,
@@ -92,7 +123,6 @@
   const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
   const dist = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
 
-  // Maps image coordinates to "display" coordinates for a rotation (0/90/180/270, clockwise).
   function rotMatrix(r, W, H) {
     const m = new DOMMatrix();
     if (r === 90) return m.translate(H, 0).rotate(90);
@@ -100,39 +130,155 @@
     if (r === 270) return m.translate(0, W).rotate(270);
     return m;
   }
-  const dispSize = (s) => (s.rotation % 180 ? [s.h, s.w] : [s.w, s.h]);
+  const cropOf = (s, full) => (!full && s.crop ? s.crop : { x: 0, y: 0, w: s.w, h: s.h });
+  // image coordinates → display coordinates (crop, then rotate)
+  function imgMatrix(s, full) {
+    const c = cropOf(s, full);
+    return rotMatrix(s.rotation, c.w, c.h).translate(-c.x, -c.y);
+  }
+  function dispSize(s, full) {
+    const c = cropOf(s, full);
+    return s.rotation % 180 ? [c.h, c.w] : [c.w, c.h];
+  }
 
   function segDist(p, a, b) {
     const dx = b[0] - a[0], dy = b[1] - a[1];
     const L = dx * dx + dy * dy;
-    let t = L ? ((p[0] - a[0]) * dx + (p[1] - a[1]) * dy) / L : 0;
-    t = clamp(t, 0, 1);
+    const t = L ? clamp(((p[0] - a[0]) * dx + (p[1] - a[1]) * dy) / L, 0, 1) : 0;
     return Math.hypot(p[0] - (a[0] + t * dx), p[1] - (a[1] + t * dy));
   }
   const normBox = (a, b) => ({ x: Math.min(a[0], b[0]), y: Math.min(a[1], b[1]), w: Math.abs(a[0] - b[0]), h: Math.abs(a[1] - b[1]) });
+  function inEllipse(a, b, p) {
+    const r = normBox(a, b);
+    const rx = Math.max(r.w / 2, 1), ry = Math.max(r.h / 2, 1);
+    const dx = (p[0] - (r.x + r.w / 2)) / rx, dy = (p[1] - (r.y + r.h / 2)) / ry;
+    return dx * dx + dy * dy <= 1;
+  }
+  function roundRectPath(ctx, x, y, w, h, r) {
+    ctx.beginPath();
+    if (ctx.roundRect) ctx.roundRect(x, y, w, h, r); else ctx.rect(x, y, w, h);
+  }
+
+  // Text and stamps are drawn upright in their own local frame, rotated by -rot.
+  function toLocal(a, p) {
+    const r = ((a.rot || 0) * Math.PI) / 180;
+    const dx = p[0] - a.p[0], dy = p[1] - a.p[1];
+    return [dx * Math.cos(r) - dy * Math.sin(r), dx * Math.sin(r) + dy * Math.cos(r)];
+  }
+  function fromLocal(a, lx, ly) {
+    const r = ((a.rot || 0) * Math.PI) / 180;
+    return [a.p[0] + lx * Math.cos(r) + ly * Math.sin(r), a.p[1] - lx * Math.sin(r) + ly * Math.cos(r)];
+  }
 
   // ---------------------------------------------------------------------
-  //  Annotation drawing
+  //  Text & stamp measuring
   // ---------------------------------------------------------------------
   const measureCtx = document.createElement('canvas').getContext('2d');
-  function textWidth(text, size) {
-    measureCtx.font = `700 ${size}px ${FONT}`;
-    return Math.max(...text.split('\n').map((l) => measureCtx.measureText(l).width), 1);
+  const fontStr = (a) => `${a.italic ? 'italic ' : ''}${a.bold === false ? 400 : 700} ${a.size}px ${(FONTS[a.font] || FONTS.sans).css}`;
+  function textBox(a) {
+    measureCtx.font = fontStr(a);
+    const lines = a.text.split('\n');
+    const w = Math.max(1, ...lines.map((l) => measureCtx.measureText(l).width));
+    const pad = a.bg ? a.size * 0.25 : a.size * 0.06;
+    return { x0: -pad, y0: -pad, x1: w + pad, y1: lines.length * a.size * LH + pad };
   }
+  function labelFont(h) { return `800 ${h * 0.6}px ${UI_FONT}`; }
+  function stampBox(a) {
+    const s = a.size;
+    if (a.kind === 'www' || a.kind === 'ebi') {
+      const h = s * 0.5;
+      measureCtx.font = labelFont(h);
+      const w = measureCtx.measureText(a.kind.toUpperCase()).width + h * 0.8;
+      return { x0: -w / 2, y0: -h / 2, x1: w / 2, y1: h / 2 };
+    }
+    const r = a.kind === 'num' ? s * 0.34 : s * 0.48;
+    return { x0: -r, y0: -r, x1: r, y1: r };
+  }
+  const localBox = (a) => (a.type === 'text' ? textBox(a) : stampBox(a));
+
   function contrastFor(hex) {
-    const n = parseInt(hex.slice(1), 16);
+    const n = parseInt(String(hex || '#000000').slice(1), 16);
     const lum = (0.299 * ((n >> 16) & 255) + 0.587 * ((n >> 8) & 255) + 0.114 * (n & 255)) / 255;
     return lum > 0.6 ? '#000000' : '#ffffff';
   }
 
-  function drawAnns(ctx, anns, showAll) {
+  // ---------------------------------------------------------------------
+  //  Annotation drawing
+  // ---------------------------------------------------------------------
+  const EXPORT_VIEW = { screen: false, k: 1, prog: (a) => (a.revealed ? 1 : 0) };
+
+  function drawAnns(ctx, anns, showAll, view) {
     for (const a of anns) {
-      if (!showAll && a.type !== 'redact') continue;
-      drawAnn(ctx, a);
+      if (!showAll && a.type !== 'redact' && a.type !== 'cover') continue;
+      drawAnn(ctx, a, view);
     }
   }
 
-  function drawAnn(ctx, a) {
+  function drawStamp(ctx, a) {
+    const s = a.size;
+    ctx.translate(a.p[0], a.p[1]);
+    ctx.rotate((-(a.rot || 0) * Math.PI) / 180);
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    switch (a.kind) {
+      case 'tick':
+      case 'cross': {
+        const path = new Path2D();
+        if (a.kind === 'tick') {
+          path.moveTo(-0.42 * s, 0.02 * s); path.lineTo(-0.12 * s, 0.32 * s); path.lineTo(0.45 * s, -0.35 * s);
+        } else {
+          path.moveTo(-0.35 * s, -0.35 * s); path.lineTo(0.35 * s, 0.35 * s);
+          path.moveTo(0.35 * s, -0.35 * s); path.lineTo(-0.35 * s, 0.35 * s);
+        }
+        ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+        ctx.strokeStyle = '#ffffff'; ctx.lineWidth = s * 0.2; ctx.stroke(path);
+        ctx.strokeStyle = a.kind === 'tick' ? '#16a34a' : '#dc2626'; ctx.lineWidth = s * 0.12; ctx.stroke(path);
+        break;
+      }
+      case 'question': {
+        ctx.beginPath(); ctx.arc(0, 0, s * 0.42, 0, Math.PI * 2);
+        ctx.fillStyle = '#2563eb'; ctx.fill();
+        ctx.lineWidth = s * 0.05; ctx.strokeStyle = '#fff'; ctx.stroke();
+        ctx.fillStyle = '#fff'; ctx.font = `800 ${s * 0.56}px ${UI_FONT}`;
+        ctx.fillText('?', 0, s * 0.03);
+        break;
+      }
+      case 'star': {
+        ctx.beginPath();
+        for (let i = 0; i < 10; i++) {
+          const ang = -Math.PI / 2 + (i * Math.PI) / 5;
+          const r = i % 2 ? s * 0.2 : s * 0.48;
+          ctx.lineTo(Math.cos(ang) * r, Math.sin(ang) * r);
+        }
+        ctx.closePath();
+        ctx.fillStyle = '#facc15'; ctx.fill();
+        ctx.lineJoin = 'round'; ctx.lineWidth = s * 0.045; ctx.strokeStyle = '#92400e'; ctx.stroke();
+        break;
+      }
+      case 'num': {
+        const col = a.color || '#e11d48';
+        ctx.beginPath(); ctx.arc(0, 0, s * 0.32, 0, Math.PI * 2);
+        ctx.fillStyle = col; ctx.fill();
+        ctx.lineWidth = s * 0.045; ctx.strokeStyle = contrastFor(col) === '#ffffff' ? '#ffffff' : '#111827'; ctx.stroke();
+        ctx.fillStyle = contrastFor(col);
+        ctx.font = `800 ${s * (a.n >= 10 ? 0.3 : 0.38)}px ${UI_FONT}`;
+        ctx.fillText(String(a.n || 1), 0, s * 0.02);
+        break;
+      }
+      case 'www':
+      case 'ebi': {
+        const b = stampBox(a);
+        roundRectPath(ctx, b.x0, b.y0, b.x1 - b.x0, b.y1 - b.y0, (b.y1 - b.y0) * 0.25);
+        ctx.fillStyle = a.kind === 'www' ? '#16a34a' : '#d97706'; ctx.fill();
+        ctx.lineWidth = s * 0.03; ctx.strokeStyle = '#fff'; ctx.stroke();
+        ctx.fillStyle = '#fff'; ctx.font = labelFont(b.y1 - b.y0);
+        ctx.fillText(a.kind.toUpperCase(), 0, s * 0.01);
+        break;
+      }
+    }
+  }
+
+  function drawAnn(ctx, a, view) {
     ctx.save();
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
@@ -142,7 +288,7 @@
         ctx.strokeStyle = a.color;
         ctx.fillStyle = a.color;
         ctx.lineWidth = a.w;
-        if (a.type === 'hl') { ctx.globalAlpha = 0.4; ctx.lineCap = 'butt'; ctx.lineJoin = 'round'; }
+        if (a.type === 'hl') { ctx.globalAlpha = 0.4; ctx.lineCap = 'butt'; }
         const p = a.pts;
         if (p.length === 1) {
           ctx.beginPath(); ctx.arc(p[0][0], p[0][1], a.w / 2, 0, Math.PI * 2); ctx.fill();
@@ -151,8 +297,7 @@
         ctx.beginPath();
         ctx.moveTo(p[0][0], p[0][1]);
         for (let i = 1; i < p.length - 1; i++) {
-          const mx = (p[i][0] + p[i + 1][0]) / 2, my = (p[i][1] + p[i + 1][1]) / 2;
-          ctx.quadraticCurveTo(p[i][0], p[i][1], mx, my);
+          ctx.quadraticCurveTo(p[i][0], p[i][1], (p[i][0] + p[i + 1][0]) / 2, (p[i][1] + p[i + 1][1]) / 2);
         }
         const l = p[p.length - 1];
         ctx.lineTo(l[0], l[1]);
@@ -165,8 +310,8 @@
         const len = Math.hypot(x2 - x1, y2 - y1);
         const head = Math.min(Math.max(a.w * 4, a.w + 10), len * 0.6);
         ctx.strokeStyle = a.color; ctx.fillStyle = a.color; ctx.lineWidth = a.w;
-        const sx = x2 - Math.cos(ang) * head * 0.6, sy = y2 - Math.sin(ang) * head * 0.6;
-        ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(sx, sy); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(x1, y1);
+        ctx.lineTo(x2 - Math.cos(ang) * head * 0.6, y2 - Math.sin(ang) * head * 0.6); ctx.stroke();
         ctx.beginPath();
         ctx.moveTo(x2, y2);
         ctx.lineTo(x2 - head * Math.cos(ang - 0.45), y2 - head * Math.sin(ang - 0.45));
@@ -194,40 +339,65 @@
         ctx.fillRect(b.x, b.y, b.w, b.h);
         break;
       }
+      case 'cover': {
+        const b = normBox(a.a, a.b);
+        const prog = view.prog(a);
+        if (prog >= 1) {
+          if (view.screen) {
+            ctx.setLineDash([8 * view.k, 6 * view.k]);
+            ctx.lineWidth = 2 * view.k;
+            ctx.strokeStyle = 'rgba(100,116,139,0.9)';
+            ctx.strokeRect(b.x, b.y, b.w, b.h);
+          }
+          break;
+        }
+        const h = b.h * (1 - prog);
+        ctx.fillStyle = '#475569';
+        ctx.fillRect(b.x, b.y, b.w, h);
+        ctx.lineWidth = Math.max(2 * view.k, Math.min(b.w, b.h) * 0.015);
+        ctx.strokeStyle = '#1e293b';
+        ctx.strokeRect(b.x, b.y, b.w, h);
+        if (prog === 0) {
+          const fs = Math.min(b.w, b.h) * 0.5;
+          ctx.fillStyle = 'rgba(255,255,255,0.85)';
+          ctx.font = `800 ${fs}px ${UI_FONT}`;
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillText('?', b.x + b.w / 2, b.y + b.h / 2 + fs * 0.04);
+        }
+        break;
+      }
       case 'text': {
         ctx.translate(a.p[0], a.p[1]);
-        ctx.rotate((-a.rot * Math.PI) / 180);
-        ctx.font = `700 ${a.size}px ${FONT}`;
+        ctx.rotate((-(a.rot || 0) * Math.PI) / 180);
+        if (a.bg) {
+          const bx = textBox(a);
+          ctx.fillStyle = contrastFor(a.color) === '#000000' ? 'rgba(17,24,39,0.88)' : 'rgba(255,255,255,0.92)';
+          roundRectPath(ctx, bx.x0, bx.y0, bx.x1 - bx.x0, bx.y1 - bx.y0, a.size * 0.18);
+          ctx.fill();
+        }
+        ctx.font = fontStr(a);
         ctx.textBaseline = 'top';
-        ctx.lineWidth = a.size * 0.16;
-        ctx.strokeStyle = contrastFor(a.color);
         ctx.fillStyle = a.color;
+        ctx.strokeStyle = contrastFor(a.color);
+        ctx.lineWidth = a.size * 0.16;
         a.text.split('\n').forEach((line, i) => {
-          ctx.strokeText(line, 0, i * a.size * 1.15);
-          ctx.fillText(line, 0, i * a.size * 1.15);
+          const y = i * a.size * LH;
+          if (!a.bg) ctx.strokeText(line, 0, y);
+          ctx.fillText(line, 0, y);
         });
         break;
       }
-      case 'tick':
-      case 'cross': {
-        ctx.translate(a.p[0], a.p[1]);
-        ctx.rotate((-a.rot * Math.PI) / 180);
-        const s = a.size;
-        const path = new Path2D();
-        if (a.type === 'tick') {
-          path.moveTo(-0.42 * s, 0.02 * s); path.lineTo(-0.12 * s, 0.32 * s); path.lineTo(0.45 * s, -0.35 * s);
-        } else {
-          path.moveTo(-0.35 * s, -0.35 * s); path.lineTo(0.35 * s, 0.35 * s);
-          path.moveTo(0.35 * s, -0.35 * s); path.lineTo(-0.35 * s, 0.35 * s);
-        }
-        ctx.strokeStyle = '#ffffff'; ctx.lineWidth = s * 0.2; ctx.stroke(path);
-        ctx.strokeStyle = a.type === 'tick' ? '#16a34a' : '#dc2626'; ctx.lineWidth = s * 0.12; ctx.stroke(path);
+      case 'stamp':
+        drawStamp(ctx, a);
         break;
-      }
     }
     ctx.restore();
   }
 
+  // ---------------------------------------------------------------------
+  //  Hit testing, bounding boxes, transforms
+  // ---------------------------------------------------------------------
   function hitAnn(a, p, tol) {
     switch (a.type) {
       case 'pen':
@@ -239,7 +409,8 @@
       }
       case 'arrow': return segDist(p, a.a, a.b) <= tol + a.w / 2;
       case 'rect':
-      case 'redact': {
+      case 'redact':
+      case 'cover': {
         const b = normBox(a.a, a.b);
         return p[0] >= b.x - tol && p[0] <= b.x + b.w + tol && p[1] >= b.y - tol && p[1] <= b.y + b.h + tol;
       }
@@ -249,31 +420,78 @@
         const dx = (p[0] - (b.x + b.w / 2)) / rx, dy = (p[1] - (b.y + b.h / 2)) / ry;
         return dx * dx + dy * dy <= 1;
       }
-      case 'text': {
-        const r = (a.rot * Math.PI) / 180;
-        const dx = p[0] - a.p[0], dy = p[1] - a.p[1];
-        const lx = dx * Math.cos(r) - dy * Math.sin(r);
-        const ly = dx * Math.sin(r) + dy * Math.cos(r);
-        const lines = a.text.split('\n').length;
-        return lx >= -tol && lx <= a.bw + tol && ly >= -tol && ly <= lines * a.size * 1.15 + tol;
+      case 'text':
+      case 'stamp': {
+        const [lx, ly] = toLocal(a, p);
+        const b = localBox(a);
+        return lx >= b.x0 - tol && lx <= b.x1 + tol && ly >= b.y0 - tol && ly <= b.y1 + tol;
       }
-      case 'tick':
-      case 'cross':
-        return Math.hypot(p[0] - a.p[0], p[1] - a.p[1]) <= a.size * 0.55 + tol;
     }
     return false;
   }
 
+  function topHit(s, p, tol, filter) {
+    for (let i = s.anns.length - 1; i >= 0; i--) {
+      const a = s.anns[i];
+      if (filter && !filter(a)) continue;
+      if (!s.showAnn && a.type !== 'redact' && a.type !== 'cover') continue;
+      if (hitAnn(a, p, tol)) return a;
+    }
+    return null;
+  }
+
+  function annBox(a) {
+    let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+    const add = (q, pad = 0) => {
+      x0 = Math.min(x0, q[0] - pad); y0 = Math.min(y0, q[1] - pad);
+      x1 = Math.max(x1, q[0] + pad); y1 = Math.max(y1, q[1] + pad);
+    };
+    switch (a.type) {
+      case 'pen':
+      case 'hl': a.pts.forEach((q) => add(q, a.w / 2)); break;
+      case 'arrow': add(a.a, a.w); add(a.b, a.w); break;
+      case 'rect':
+      case 'ellipse': add(a.a, a.w / 2); add(a.b, a.w / 2); break;
+      case 'redact':
+      case 'cover': add(a.a); add(a.b); break;
+      case 'text':
+      case 'stamp': {
+        const b = localBox(a);
+        [[b.x0, b.y0], [b.x1, b.y0], [b.x1, b.y1], [b.x0, b.y1]].forEach(([lx, ly]) => add(fromLocal(a, lx, ly)));
+        break;
+      }
+    }
+    return { x0, y0, x1, y1 };
+  }
+
+  // Returns a transformed copy. f maps a point; k scales text/stamp size.
+  function mapAnn(a, f, k = 1) {
+    const b = { ...a };
+    if (a.pts) b.pts = a.pts.map(f);
+    if (a.a) { b.a = f(a.a); b.b = f(a.b); }
+    if (a.p) { b.p = f(a.p); if (a.size) b.size = a.size * k; }
+    return b;
+  }
+  const uniformScale = (a) => ['pen', 'hl', 'text', 'stamp'].includes(a.type);
+  const hasColour = (a) => a && (a.color !== undefined) && a.type !== 'redact' && a.type !== 'cover';
+
   // ---------------------------------------------------------------------
   //  Snaps
   // ---------------------------------------------------------------------
-  function makeSnap({ id, local = false, created = new Date(), w = 0, h = 0 }) {
-    const saved = store.get(ANN_PREFIX + id, null);
+  function normaliseAnn(a) {
+    if (a.type === 'tick' || a.type === 'cross') return { type: 'stamp', kind: a.type, p: a.p, size: a.size, rot: a.rot || 0, id: uid() };
+    if (!a.id) return { ...a, id: uid() };
+    return a;
+  }
+
+  function makeSnap({ id, local = false, created = new Date(), w = 0, h = 0, title = '' }) {
+    const saved = local ? null : store.get(ANN_PREFIX + id, null);
     return {
-      id, local, created, w, h,
+      id, local, created, w, h, title,
       img: null, url: null, loading: false, failed: false,
       rotation: saved ? saved.rotation || 0 : 0,
-      anns: saved ? saved.anns || [] : [],
+      crop: saved ? saved.crop || null : null,
+      anns: saved ? (saved.anns || []).map(normaliseAnn) : [],
       undo: [], redo: [],
       showAnn: true,
     };
@@ -282,20 +500,30 @@
 
   const persistTimers = new Map();
   function persist(s) {
-    if (s.local) return; // laptop images aren't kept after a reload anyway
+    if (s.local) return;
     clearTimeout(persistTimers.get(s.id));
     persistTimers.set(s.id, setTimeout(() => {
       if (!state.snaps.includes(s)) return;
-      if (!s.anns.length && !s.rotation) store.del(ANN_PREFIX + s.id);
-      else store.set(ANN_PREFIX + s.id, { anns: s.anns, rotation: s.rotation });
+      if (!s.anns.length && !s.rotation && !s.crop) store.del(ANN_PREFIX + s.id);
+      else store.set(ANN_PREFIX + s.id, { anns: s.anns, rotation: s.rotation, crop: s.crop });
     }, 400));
   }
 
   function commit(s, ann) {
+    ann.id = ann.id || uid();
     s.undo.push(s.anns);
     s.anns = [...s.anns, ann];
     s.redo = [];
     s.showAnn = true;
+    changed(s);
+    return ann;
+  }
+
+  // Replace the whole annotation list as one undoable step.
+  function replaceAnns(s, next) {
+    s.undo.push(s.anns);
+    s.anns = next;
+    s.redo = [];
     changed(s);
   }
 
@@ -310,8 +538,8 @@
     for (const p of state.panes) if (p.snap === s) p.request();
   }
 
-  function activePane() { return state.panes[state.active]; }
-  function activeSnap() { return activePane().snap; }
+  const activePane = () => state.panes[state.active];
+  const activeSnap = () => activePane().snap;
 
   // ---------------------------------------------------------------------
   //  Pane (one zoomable, annotatable view)
@@ -330,6 +558,14 @@
       this.ptrs = new Map();
       this.mode = null;
       this.draft = null;
+      this.sel = null;       // selected annotation
+      this.drag = null;      // select / spotlight drag info
+      this.spot = null;      // spotlight {a, b} in image coords
+      this.laser = [];       // laser trail points (screen coords)
+      this.laserDown = false;
+      this.grid = 0;         // 0 = off, else divisions across the longest side
+      this.cropping = null;  // { r, drag } while cropping
+      this.anim = new Map(); // cover reveal animations, keyed by annotation id
       this.raf = 0;
 
       new ResizeObserver(() => this.resize()).observe(el);
@@ -359,10 +595,16 @@
     }
 
     setSnap(s) {
+      if (this.cropping) endCrop(this, false);
       this.snap = s;
       this.draft = null;
+      this.sel = null;
+      this.spot = null;
+      this.laser = [];
       this.fit();
       this.updateTag();
+      updateSpotChip();
+      updateSelBar();
     }
 
     updateTag() {
@@ -371,14 +613,14 @@
 
     fitScale() {
       if (!this.snap || !this.snap.w) return 1;
-      const [dw, dh] = dispSize(this.snap);
+      const [dw, dh] = dispSize(this.snap, !!this.cropping);
       return Math.min(this.cw / dw, this.ch / dh) * 0.97;
     }
 
     fit() {
       this.fitted = true;
       if (this.snap && this.snap.w) {
-        const [dw, dh] = dispSize(this.snap);
+        const [dw, dh] = dispSize(this.snap, !!this.cropping);
         this.s = this.fitScale();
         this.tx = (this.cw - dw * this.s) / 2;
         this.ty = (this.ch - dh * this.s) / 2;
@@ -398,13 +640,17 @@
     }
 
     matrix() {
-      const s = this.snap;
-      return new DOMMatrix().translate(this.tx, this.ty).scale(this.s).multiply(rotMatrix(s.rotation, s.w, s.h));
+      return new DOMMatrix().translate(this.tx, this.ty).scale(this.s).multiply(imgMatrix(this.snap, !!this.cropping));
     }
 
     toImage(x, y) {
       const p = this.matrix().inverse().transformPoint(new DOMPoint(x, y));
       return [p.x, p.y];
+    }
+
+    toScreen(q, m = this.matrix()) {
+      const p = m.transformPoint(new DOMPoint(q[0], q[1]));
+      return { x: p.x, y: p.y };
     }
 
     local(e) {
@@ -417,6 +663,24 @@
       this.raf = requestAnimationFrame(() => { this.raf = 0; this.draw(); });
     }
 
+    coverProg(a, now) {
+      const an = this.anim.get(a.id);
+      if (!an) return a.revealed ? 1 : 0;
+      const t = Math.min(1, (now - an.start) / 380);
+      if (t >= 1) { this.anim.delete(a.id); return an.to; }
+      this.animating = true;
+      const e = t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
+      return an.from + (an.to - an.from) * e;
+    }
+
+    // Corners of the selected annotation, in screen coordinates.
+    selCorners(m = this.matrix()) {
+      const b = annBox(this.sel);
+      const pad = 6 / this.s;
+      const pts = [[b.x0 - pad, b.y0 - pad], [b.x1 + pad, b.y0 - pad], [b.x1 + pad, b.y1 + pad], [b.x0 - pad, b.y1 + pad]];
+      return { img: [[b.x0, b.y0], [b.x1, b.y0], [b.x1, b.y1], [b.x0, b.y1]], scr: pts.map((q) => this.toScreen(q, m)) };
+    }
+
     draw() {
       const ctx = this.ctx;
       const d = window.devicePixelRatio || 1;
@@ -426,17 +690,141 @@
       if (!s) return;
       if (!s.img) {
         ctx.fillStyle = '#93a2b4';
-        ctx.font = `${20 * d}px ${FONT}`;
+        ctx.font = `${20 * d}px ${UI_FONT}`;
         ctx.textAlign = 'center';
         ctx.fillText(s.failed ? 'Could not load this snap' : 'Loading…', this.canvas.width / 2, this.canvas.height / 2);
         return;
       }
-      ctx.setTransform(new DOMMatrix().scale(d).multiply(this.matrix()));
+      if (this.sel && !s.anns.includes(this.sel)) { this.sel = null; updateSelBar(); }
+      this.animating = false;
+      const now = performance.now();
+      const m0 = this.matrix();
+      const m = new DOMMatrix().scale(d).multiply(m0);
+      const c = cropOf(s, !!this.cropping);
+
+      // Photo, grid, annotations (clipped to the crop)
+      ctx.save();
+      ctx.setTransform(m);
+      ctx.beginPath(); ctx.rect(c.x, c.y, c.w, c.h); ctx.clip();
       ctx.imageSmoothingEnabled = true;
       ctx.imageSmoothingQuality = 'high';
       ctx.drawImage(s.img, 0, 0);
-      drawAnns(ctx, s.anns, s.showAnn);
-      if (this.draft) drawAnn(ctx, this.draft);
+      if (this.grid) {
+        const step = Math.max(s.w, s.h) / this.grid;
+        ctx.strokeStyle = 'rgba(14,165,233,0.55)';
+        ctx.lineWidth = 1.3 / this.s;
+        ctx.beginPath();
+        for (let x = 0; x <= s.w; x += step) { ctx.moveTo(x, 0); ctx.lineTo(x, s.h); }
+        for (let y = 0; y <= s.h; y += step) { ctx.moveTo(0, y); ctx.lineTo(s.w, y); }
+        ctx.stroke();
+      }
+      if (!this.cropping) {
+        const view = { screen: true, k: 1 / this.s, prog: (a) => this.coverProg(a, now) };
+        drawAnns(ctx, s.anns, s.showAnn, view);
+        if (this.draft) drawAnn(ctx, this.draft, view);
+      }
+      ctx.restore();
+
+      if (this.cropping) this.drawCrop(ctx, m, m0, d);
+
+      // Spotlight
+      if (this.spot && !this.cropping) {
+        const b = normBox(this.spot.a, this.spot.b);
+        ctx.save();
+        ctx.setTransform(m);
+        ctx.beginPath();
+        ctx.rect(-1e6, -1e6, 2e6, 2e6);
+        ctx.ellipse(b.x + b.w / 2, b.y + b.h / 2, Math.max(b.w / 2, 1), Math.max(b.h / 2, 1), 0, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(0,0,0,0.78)';
+        ctx.fill('evenodd');
+        ctx.beginPath();
+        ctx.ellipse(b.x + b.w / 2, b.y + b.h / 2, Math.max(b.w / 2, 1), Math.max(b.h / 2, 1), 0, 0, Math.PI * 2);
+        ctx.lineWidth = 2 / this.s;
+        ctx.strokeStyle = 'rgba(255,255,255,0.5)';
+        ctx.stroke();
+        ctx.restore();
+      }
+
+      // Selection frame + handles
+      if (this.sel && !this.cropping) {
+        const { scr } = this.selCorners(m0);
+        const xs = scr.map((p) => p.x), ys = scr.map((p) => p.y);
+        const x0 = Math.min(...xs), x1 = Math.max(...xs), y0 = Math.min(...ys), y1 = Math.max(...ys);
+        ctx.save();
+        ctx.setTransform(d, 0, 0, d, 0, 0);
+        ctx.setLineDash([6, 4]);
+        ctx.lineWidth = 2;
+        ctx.strokeStyle = '#3b82f6';
+        ctx.strokeRect(x0, y0, x1 - x0, y1 - y0);
+        ctx.setLineDash([]);
+        for (const p of scr) {
+          ctx.fillStyle = '#ffffff';
+          ctx.fillRect(p.x - 9, p.y - 9, 18, 18);
+          ctx.strokeRect(p.x - 9, p.y - 9, 18, 18);
+        }
+        ctx.restore();
+        if (this.idx === state.active) placeSelBar(this, { x0, y0, x1, y1 });
+      }
+
+      // Laser trail
+      if (this.laser.length) {
+        this.laser = this.laser.filter((p) => now - p.t < 900);
+        ctx.save();
+        ctx.setTransform(d, 0, 0, d, 0, 0);
+        ctx.lineCap = 'round';
+        ctx.shadowColor = 'rgba(255,40,60,0.9)';
+        ctx.shadowBlur = 14;
+        for (let i = 1; i < this.laser.length; i++) {
+          const p = this.laser[i], q = this.laser[i - 1];
+          if (p.brk) continue;
+          ctx.strokeStyle = `rgba(255,50,70,${Math.max(0, 1 - (now - p.t) / 900)})`;
+          ctx.lineWidth = 7;
+          ctx.beginPath(); ctx.moveTo(q.x, q.y); ctx.lineTo(p.x, p.y); ctx.stroke();
+        }
+        const last = this.laser[this.laser.length - 1];
+        if (this.laserDown && last) {
+          ctx.fillStyle = '#ff3b4f';
+          ctx.beginPath(); ctx.arc(last.x, last.y, 9, 0, Math.PI * 2); ctx.fill();
+        }
+        ctx.restore();
+        if (this.laser.length) this.animating = true;
+      }
+
+      if (this.animating) this.request();
+    }
+
+    drawCrop(ctx, m, m0, d) {
+      const r = this.cropping.r;
+      ctx.save();
+      ctx.setTransform(m);
+      ctx.beginPath();
+      ctx.rect(-1e6, -1e6, 2e6, 2e6);
+      ctx.rect(r.x, r.y, r.w, r.h);
+      ctx.fillStyle = 'rgba(0,0,0,0.62)';
+      ctx.fill('evenodd');
+      ctx.lineWidth = 2.5 / this.s;
+      ctx.strokeStyle = '#ffffff';
+      ctx.strokeRect(r.x, r.y, r.w, r.h);
+      ctx.lineWidth = 1 / this.s;
+      ctx.strokeStyle = 'rgba(255,255,255,0.45)';
+      ctx.beginPath();
+      for (let i = 1; i < 3; i++) {
+        ctx.moveTo(r.x + (r.w * i) / 3, r.y); ctx.lineTo(r.x + (r.w * i) / 3, r.y + r.h);
+        ctx.moveTo(r.x, r.y + (r.h * i) / 3); ctx.lineTo(r.x + r.w, r.y + (r.h * i) / 3);
+      }
+      ctx.stroke();
+      ctx.restore();
+      ctx.save();
+      ctx.setTransform(d, 0, 0, d, 0, 0);
+      for (const q of [[r.x, r.y], [r.x + r.w, r.y], [r.x + r.w, r.y + r.h], [r.x, r.y + r.h]]) {
+        const p = this.toScreen(q, m0);
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(p.x - 11, p.y - 11, 22, 22);
+        ctx.strokeStyle = '#3b82f6';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(p.x - 11, p.y - 11, 22, 22);
+      }
+      ctx.restore();
     }
 
     // ----- pointer handling -----
@@ -448,17 +836,18 @@
       const p = this.local(e);
       this.ptrs.set(e.pointerId, p);
 
-      if (this.ptrs.size === 2) {        // second finger → pinch zoom, cancel any half-drawn mark
+      if (this.ptrs.size === 2) { // second finger → pinch zoom, cancel any half-done action
         this.cancelTool();
         this.startPinch();
         this.mode = 'pinch';
         return;
       }
       if (this.ptrs.size > 2) return;
-      if (!this.snap || !this.snap.img) { this.mode = 'pan'; this.last = p; return; }
+      if (!this.snap || !this.snap.img) { this.mode = 'pan'; this.last = p; this.down = p; this.moved = 0; return; }
 
+      if (this.cropping) { this.mode = 'crop'; cropDown(this, p); return; }
       if (state.tool === 'pan' || e.button === 1 || e.button === 2) {
-        this.mode = 'pan'; this.last = p; return;
+        this.mode = 'pan'; this.last = p; this.down = p; this.moved = 0; return;
       }
       this.mode = 'draw';
       startTool(this, p);
@@ -472,10 +861,12 @@
       else if (this.mode === 'pan') {
         this.tx += p.x - this.last.x;
         this.ty += p.y - this.last.y;
+        this.moved += Math.abs(p.x - this.last.x) + Math.abs(p.y - this.last.y);
         this.last = p;
         this.fitted = false;
         this.request();
-      } else if (this.mode === 'draw') {
+      } else if (this.mode === 'crop') cropMove(this, p);
+      else if (this.mode === 'draw') {
         const evs = e.getCoalescedEvents ? e.getCoalescedEvents() : [];
         if (evs.length > 1) for (const ce of evs) moveTool(this, this.local(ce));
         else moveTool(this, p);
@@ -485,14 +876,16 @@
     onUp(e, cancelled) {
       if (!this.ptrs.has(e.pointerId)) return;
       this.ptrs.delete(e.pointerId);
+      const left = this.ptrs.size;
       if (this.mode === 'draw') {
         if (cancelled) this.cancelTool(); else finishTool(this);
-        this.mode = this.ptrs.size ? 'wait' : null;
-      } else if (this.mode === 'pinch') {
-        this.mode = this.ptrs.size ? 'wait' : null; // don't start drawing with the finger left behind
-      } else if (!this.ptrs.size) {
-        this.mode = null;
+      } else if (this.mode === 'crop') {
+        cropUp(this);
+      } else if (this.mode === 'pan' && !cancelled && this.moved < 8 && this.snap && this.snap.img) {
+        tapCover(this, this.down); // tap with the Move tool reveals/hides a cover
       }
+      if (this.mode === 'draw' || this.mode === 'pinch' || this.mode === 'crop') this.mode = left ? 'wait' : null;
+      else if (!left) this.mode = null;
     }
 
     startPinch() {
@@ -514,13 +907,15 @@
     }
 
     cancelTool() {
-      if (this.erasing && this.eraseBefore && this.snap) {
-        this.snap.anns = this.eraseBefore; // undo a half-done erase
-        changed(this.snap);
-      }
+      const s = this.snap;
+      if (this.erasing && this.eraseBefore && s) { s.anns = this.eraseBefore; changed(s); }
+      if (this.drag && this.drag.before && s) { s.anns = this.drag.before; this.sel = this.drag.orig || null; changed(s); }
+      if (this.cropping) this.cropping.drag = null;
       this.erasing = false;
       this.eraseBefore = null;
+      this.drag = null;
       this.draft = null;
+      this.laserDown = false;
       this.request();
     }
   }
@@ -528,12 +923,17 @@
   // ---------------------------------------------------------------------
   //  Tools
   // ---------------------------------------------------------------------
+  function nextNumber(s) {
+    return 1 + s.anns.reduce((m, a) => (a.type === 'stamp' && a.kind === 'num' ? Math.max(m, a.n || 0) : m), 0);
+  }
+
   function startTool(pane, sp) {
     const s = pane.snap;
     const ip = pane.toImage(sp.x, sp.y);
     const sz = SIZES[state.size];
     const k = 1 / pane.s; // screen px → image px
     const c = state.colour;
+    if (state.tool !== 'select' && pane.sel) { pane.sel = null; updateSelBar(); }
     switch (state.tool) {
       case 'pen': pane.draft = { type: 'pen', pts: [ip], color: c, w: sz.line * k }; break;
       case 'hl': pane.draft = { type: 'hl', pts: [ip], color: c, w: sz.line * 3.5 * k }; break;
@@ -541,22 +941,24 @@
       case 'rect':
       case 'ellipse': pane.draft = { type: state.tool, a: ip, b: ip, color: c, w: sz.line * k }; break;
       case 'redact': pane.draft = { type: 'redact', a: ip, b: ip }; break;
-      case 'tick':
-      case 'cross':
-        commit(s, { type: state.tool, p: ip, size: sz.stamp * k, rot: s.rotation });
-        pane.mode = 'wait';
+      case 'cover': pane.draft = { type: 'cover', a: ip, b: ip, revealed: false, down: sp }; break;
+      case 'stamp': {
+        const st = { type: 'stamp', kind: state.stamp, p: ip, size: sz.stamp * k, rot: s.rotation };
+        if (state.stamp === 'num') { st.n = nextNumber(s); st.color = c; }
+        pane.draft = st; // placed when the finger lifts; drag to position it
         break;
-      case 'text':
-        pane.mode = 'wait';
-        askText((t) => {
-          const size = sz.font * k;
-          commit(s, { type: 'text', p: ip, text: t, color: c, size, rot: s.rotation, bw: textWidth(t, size) });
-        });
-        break;
+      }
+      case 'text': pane.draft = { type: 'textTap', p: ip, down: sp }; break;
       case 'eraser':
         pane.erasing = true;
         pane.eraseBefore = s.anns;
         eraseAt(pane, ip);
+        break;
+      case 'select': selectDown(pane, sp, ip); break;
+      case 'spot': spotDown(pane, sp, ip); break;
+      case 'laser':
+        pane.laserDown = true;
+        pane.laser.push({ x: sp.x, y: sp.y, t: performance.now(), brk: true });
         break;
     }
     pane.request();
@@ -564,16 +966,21 @@
 
   function moveTool(pane, sp) {
     const ip = pane.toImage(sp.x, sp.y);
-    const d = pane.draft;
     if (pane.erasing) { eraseAt(pane, ip); return; }
+    switch (state.tool) {
+      case 'select': selectMove(pane, ip); return;
+      case 'spot': spotMove(pane, sp, ip); return;
+      case 'laser': pane.laser.push({ x: sp.x, y: sp.y, t: performance.now() }); pane.request(); return;
+    }
+    const d = pane.draft;
     if (!d) return;
-    if (d.pts) {
+    if (d.type === 'textTap') return;
+    if (d.type === 'stamp') d.p = ip;
+    else if (d.pts) {
       const l = d.pts[d.pts.length - 1];
       if (Math.hypot(ip[0] - l[0], ip[1] - l[1]) * pane.s < 1.5) return;
       d.pts.push(ip);
-    } else {
-      d.b = ip;
-    }
+    } else d.b = ip;
     pane.request();
   }
 
@@ -589,9 +996,26 @@
       pane.eraseBefore = null;
       return;
     }
+    switch (state.tool) {
+      case 'select': selectUp(pane); return;
+      case 'spot': spotUp(pane); return;
+      case 'laser': pane.laserDown = false; pane.request(); return;
+    }
     const d = pane.draft;
     pane.draft = null;
     if (!d) return;
+    if (d.type === 'textTap') {
+      const hit = topHit(s, d.p, 12 / pane.s, (a) => a.type === 'text');
+      if (hit) editText(pane, hit); else addText(pane, d.p);
+      return;
+    }
+    if (d.type === 'cover') {
+      const tiny = Math.hypot(d.a[0] - d.b[0], d.a[1] - d.b[1]) * pane.s < 10;
+      delete d.down;
+      if (tiny) { tapCover(pane, pane.toScreen(d.a)); pane.request(); return; }
+      commit(s, d);
+      return;
+    }
     if (d.a && Math.hypot(d.a[0] - d.b[0], d.a[1] - d.b[1]) * pane.s < 6) { pane.request(); return; } // accidental tap
     commit(s, d);
   }
@@ -606,6 +1030,242 @@
     }
   }
 
+  // ----- Hide & reveal covers -----
+  function tapCover(pane, sp) {
+    const s = pane.snap;
+    const ip = pane.toImage(sp.x, sp.y);
+    const a = topHit(s, ip, 0, (x) => x.type === 'cover');
+    if (!a) return false;
+    const nu = { ...a, revealed: !a.revealed };
+    s.anns = s.anns.map((x) => (x === a ? nu : x));
+    for (const p of state.panes) {
+      if (p.snap === s) p.anim.set(nu.id, { from: a.revealed ? 1 : 0, to: nu.revealed ? 1 : 0, start: performance.now() });
+    }
+    persist(s);
+    redrawSnap(s);
+    return true;
+  }
+
+  // ----- Select / move / resize -----
+  function selectDown(pane, sp, ip) {
+    const s = pane.snap;
+    const now = performance.now();
+    if (pane.sel) {
+      const { img, scr } = pane.selCorners();
+      let best = -1, bd = 30;
+      scr.forEach((p, i) => { const dd = Math.hypot(p.x - sp.x, p.y - sp.y); if (dd < bd) { bd = dd; best = i; } });
+      if (best >= 0) {
+        pane.drag = { kind: 'resize', orig: pane.sel, before: s.anns, origin: img[(best + 2) % 4], handle: img[best], moved: false };
+        return;
+      }
+    }
+    const hit = topHit(s, ip, 14 / pane.s);
+    if (hit && hit === pane.sel && hit.type === 'text' && now - (pane.lastTap || 0) < 450) {
+      pane.drag = null;
+      editText(pane, hit);
+      return;
+    }
+    pane.lastTap = now;
+    pane.sel = hit || null;
+    pane.drag = hit ? { kind: 'move', orig: hit, before: s.anns, start: ip, moved: false } : null;
+    updateSelBar();
+  }
+
+  function selectMove(pane, ip) {
+    const d = pane.drag;
+    if (!d) return;
+    const s = pane.snap;
+    let nu;
+    if (d.kind === 'move') {
+      const dx = ip[0] - d.start[0], dy = ip[1] - d.start[1];
+      if (!d.moved && Math.hypot(dx, dy) * pane.s < 3) return;
+      nu = mapAnn(d.orig, (q) => [q[0] + dx, q[1] + dy]);
+    } else {
+      const o = d.origin, h = d.handle;
+      const hx = h[0] - o[0] || 1e-6, hy = h[1] - o[1] || 1e-6;
+      let sx = (ip[0] - o[0]) / hx, sy = (ip[1] - o[1]) / hy;
+      let k = 1;
+      if (uniformScale(d.orig)) {
+        k = Math.max(0.08, ((ip[0] - o[0]) * hx + (ip[1] - o[1]) * hy) / (hx * hx + hy * hy));
+        sx = sy = k;
+      }
+      nu = mapAnn(d.orig, (q) => [o[0] + (q[0] - o[0]) * sx, o[1] + (q[1] - o[1]) * sy], k);
+    }
+    s.anns = d.before.map((a) => (a === d.orig ? nu : a));
+    pane.sel = nu;
+    d.moved = true;
+    redrawSnap(s);
+  }
+
+  function selectUp(pane) {
+    const d = pane.drag;
+    pane.drag = null;
+    if (d && d.moved) {
+      const s = pane.snap;
+      s.undo.push(d.before);
+      s.redo = [];
+      changed(s);
+    }
+    updateSelBar();
+  }
+
+  function selAction(kind) {
+    const pane = activePane();
+    const s = pane.snap, a = pane.sel;
+    if (!s || !a) return;
+    if (kind === 'del') {
+      replaceAnns(s, s.anns.filter((x) => x !== a));
+      pane.sel = null;
+    } else if (kind === 'dup') {
+      const off = 24 / pane.s;
+      const copy = mapAnn(a, (q) => [q[0] + off, q[1] + off]);
+      copy.id = uid();
+      if (copy.type === 'stamp' && copy.kind === 'num') copy.n = nextNumber(s);
+      if (copy.type === 'cover') copy.revealed = false;
+      commit(s, copy);
+      pane.sel = copy;
+    } else if (kind === 'front') {
+      replaceAnns(s, [...s.anns.filter((x) => x !== a), a]);
+    } else if (kind === 'edit' && a.type === 'text') {
+      editText(pane, a);
+    } else if (kind === 'done') {
+      pane.sel = null;
+    }
+    updateSelBar();
+    pane.request();
+  }
+
+  function recolourSelection(col) {
+    const pane = activePane();
+    const s = pane.snap, a = pane.sel;
+    if (!s || !hasColour(a)) return false;
+    const nu = { ...a, color: col };
+    replaceAnns(s, s.anns.map((x) => (x === a ? nu : x)));
+    pane.sel = nu;
+    return true;
+  }
+
+  function updateSelBar() {
+    const p = activePane && state.panes.length ? activePane() : null;
+    const bar = $('#selBar');
+    if (!p || !p.sel || p.cropping) { bar.classList.add('hidden'); return; }
+    bar.classList.remove('hidden');
+    $('[data-sel="edit"]', bar).classList.toggle('hidden', p.sel.type !== 'text');
+    p.request();
+  }
+
+  function placeSelBar(pane, box) {
+    const bar = $('#selBar');
+    if (bar.classList.contains('hidden')) return;
+    const bw = bar.offsetWidth, bh = bar.offsetHeight;
+    const ox = pane.el.offsetLeft, oy = pane.el.offsetTop;
+    let x = ox + (box.x0 + box.x1) / 2 - bw / 2;
+    let y = oy + box.y0 - bh - 14;
+    if (y < oy + 6) y = oy + box.y1 + 14;
+    x = clamp(x, ox + 6, ox + pane.cw - bw - 6);
+    y = clamp(y, oy + 6, oy + pane.ch - bh - 6);
+    bar.style.left = x + 'px';
+    bar.style.top = y + 'px';
+  }
+
+  // ----- Spotlight -----
+  function spotDown(pane, sp, ip) {
+    const sp0 = pane.spot;
+    if (sp0 && inEllipse(sp0.a, sp0.b, ip)) pane.drag = { kind: 'spotmove', start: ip, orig: { a: [...sp0.a], b: [...sp0.b] } };
+    else { pane.spot = { a: ip, b: ip }; pane.drag = { kind: 'spotnew', down: sp }; }
+    updateSpotChip();
+  }
+  function spotMove(pane, sp, ip) {
+    const d = pane.drag;
+    if (!d) return;
+    if (d.kind === 'spotmove') {
+      const dx = ip[0] - d.start[0], dy = ip[1] - d.start[1];
+      pane.spot = { a: [d.orig.a[0] + dx, d.orig.a[1] + dy], b: [d.orig.b[0] + dx, d.orig.b[1] + dy] };
+    } else pane.spot.b = ip;
+    pane.request();
+  }
+  function spotUp(pane) {
+    const d = pane.drag;
+    pane.drag = null;
+    if (d && d.kind === 'spotnew') {
+      const a = pane.spot.a, b = pane.spot.b;
+      if (Math.hypot(a[0] - b[0], a[1] - b[1]) * pane.s < 20) { // tap → default-sized circle
+        const r = 150 / pane.s;
+        pane.spot = { a: [a[0] - r, a[1] - r], b: [a[0] + r, a[1] + r] };
+      }
+    }
+    pane.request();
+    updateSpotChip();
+  }
+  function clearSpot() {
+    state.panes.forEach((p) => { p.spot = null; p.request(); });
+    updateSpotChip();
+  }
+  function updateSpotChip() {
+    $('#spotChip').classList.toggle('hidden', !state.panes.some((p) => p.spot));
+  }
+
+  // ----- Crop -----
+  function startCrop() {
+    const pane = activePane();
+    const s = pane.snap;
+    if (!s || !s.img) return;
+    pane.sel = null;
+    pane.spot = null;
+    pane.cropping = { r: { ...cropOf(s) } };
+    pane.fit();
+    $('#cropBar').classList.remove('hidden');
+    updateSelBar();
+    updateSpotChip();
+  }
+  function endCrop(pane, apply) {
+    const c = pane.cropping;
+    if (!c) return;
+    const s = pane.snap;
+    if (apply === 'reset') { c.r = { x: 0, y: 0, w: s.w, h: s.h }; pane.request(); return; }
+    pane.cropping = null;
+    $('#cropBar').classList.add('hidden');
+    if (apply) {
+      const r = { x: Math.round(c.r.x), y: Math.round(c.r.y), w: Math.round(c.r.w), h: Math.round(c.r.h) };
+      s.crop = r.x <= 2 && r.y <= 2 && r.w >= s.w - 4 && r.h >= s.h - 4 ? null : r;
+      persist(s);
+      for (const p of state.panes) if (p.snap === s && p !== pane) p.fit();
+    }
+    pane.fit();
+  }
+  function cropDown(pane, sp) {
+    const c = pane.cropping, r = c.r, s = pane.snap;
+    const corners = [[r.x, r.y], [r.x + r.w, r.y], [r.x + r.w, r.y + r.h], [r.x, r.y + r.h]];
+    let best = -1, bd = 34;
+    corners.forEach((q, i) => { const p = pane.toScreen(q); const dd = Math.hypot(p.x - sp.x, p.y - sp.y); if (dd < bd) { bd = dd; best = i; } });
+    let ip = pane.toImage(sp.x, sp.y);
+    ip = [clamp(ip[0], 0, s.w), clamp(ip[1], 0, s.h)];
+    if (best >= 0) c.drag = { kind: 'corner', fixed: corners[(best + 2) % 4] };
+    else if (ip[0] > r.x && ip[0] < r.x + r.w && ip[1] > r.y && ip[1] < r.y + r.h) c.drag = { kind: 'move', start: ip, orig: { ...r } };
+    else { c.drag = { kind: 'corner', fixed: ip }; c.r = { x: ip[0], y: ip[1], w: 1, h: 1 }; }
+  }
+  function cropMove(pane, sp) {
+    const c = pane.cropping, d = c && c.drag, s = pane.snap;
+    if (!d) return;
+    let ip = pane.toImage(sp.x, sp.y);
+    ip = [clamp(ip[0], 0, s.w), clamp(ip[1], 0, s.h)];
+    if (d.kind === 'corner') {
+      c.r = { x: Math.min(d.fixed[0], ip[0]), y: Math.min(d.fixed[1], ip[1]), w: Math.abs(ip[0] - d.fixed[0]), h: Math.abs(ip[1] - d.fixed[1]) };
+    } else {
+      const o = d.orig;
+      c.r = { x: clamp(o.x + ip[0] - d.start[0], 0, s.w - o.w), y: clamp(o.y + ip[1] - d.start[1], 0, s.h - o.h), w: o.w, h: o.h };
+    }
+    pane.request();
+  }
+  function cropUp(pane) {
+    const c = pane.cropping;
+    if (!c) return;
+    c.drag = null;
+    if (c.r.w < 20 || c.r.h < 20) c.r = { x: 0, y: 0, w: pane.snap.w, h: pane.snap.h };
+    pane.request();
+  }
+
+  // ----- Undo / redo / clear / hide -----
   function undo() {
     const s = activeSnap();
     if (!s || !s.undo.length) return;
@@ -625,10 +1285,7 @@
   function clearMarks() {
     const s = activeSnap();
     if (!s || !s.anns.length) return;
-    s.undo.push(s.anns);
-    s.anns = [];
-    s.redo = [];
-    changed(s);
+    replaceAnns(s, []);
     toast('Annotations cleared. Undo brings them back.');
   }
   function toggleAnn() {
@@ -640,8 +1297,114 @@
   }
 
   // ---------------------------------------------------------------------
+  //  Text dialog (add + edit)
+  // ---------------------------------------------------------------------
+  function nearestSizeKey(screenPx) {
+    let best = 'M', bd = Infinity;
+    for (const [k, v] of Object.entries(TEXT_SIZES)) { const d = Math.abs(Math.log(v / screenPx)); if (d < bd) { bd = d; best = k; } }
+    return best;
+  }
+
+  function addText(pane, ip) {
+    const st = state.textStyle;
+    textDialog({ title: 'Add text', ok: 'Add', text: '', font: st.font, bold: st.bold, italic: st.italic, bg: st.bg, sizeKey: st.sizeKey, color: state.colour }, (v) => {
+      const s = pane.snap;
+      commit(s, { type: 'text', p: ip, text: v.text, color: v.color, size: TEXT_SIZES[v.sizeKey] / pane.s, rot: s.rotation, font: v.font, bold: v.bold, italic: v.italic, bg: v.bg });
+    });
+  }
+
+  function editText(pane, a) {
+    const startKey = nearestSizeKey(a.size * pane.s);
+    textDialog({ title: 'Edit text', ok: 'Save', text: a.text, font: a.font || 'sans', bold: a.bold !== false, italic: !!a.italic, bg: !!a.bg, sizeKey: startKey, color: a.color }, (v) => {
+      const s = pane.snap;
+      const nu = { ...a, text: v.text, color: v.color, font: v.font, bold: v.bold, italic: v.italic, bg: v.bg };
+      if (v.sizeKey !== startKey) nu.size = TEXT_SIZES[v.sizeKey] / pane.s;
+      replaceAnns(s, s.anns.map((x) => (x === a ? nu : x)));
+      if (pane.sel === a) { pane.sel = nu; updateSelBar(); }
+    });
+  }
+
+  function textDialog(init, onOk) {
+    const v = { ...init };
+    const fontBtns = Object.entries(FONTS).map(([k, f]) => `<button type="button" data-font="${k}" style="font-family:${f.css.replace(/"/g, '&quot;')}">Aa <small>${f.name}</small></button>`).join('');
+    const sizeBtns = Object.keys(TEXT_SIZES).map((k) => `<button type="button" data-size="${k}">${k}</button>`).join('');
+    const colBtns = COLOURS.map((c) => `<button type="button" class="sw" data-col="${c}"><span style="background:${c}"></span></button>`).join('');
+    openModal(
+      `<h2>${init.title}</h2>
+       <textarea id="txtIn" placeholder="Type here… (Shift+Enter for a new line)"></textarea>
+       <div class="seg fonts">${fontBtns}</div>
+       <div class="seg-row">
+         <div class="seg"><button type="button" data-st="bold"><b>B</b></button><button type="button" data-st="italic"><i>I</i></button><button type="button" data-st="bg">Background</button></div>
+         <div class="seg">${sizeBtns}</div>
+       </div>
+       <div class="seg cols">${colBtns}</div>
+       <div class="txt-prev" id="txtPrev"><span></span></div>
+       <div class="row"><button class="btn ghost" data-x>Cancel</button><button class="btn primary" data-ok>${init.ok}</button></div>`,
+      (b, close) => {
+        b.classList.add('wide');
+        const ta = $('#txtIn', b);
+        ta.value = v.text;
+        const prev = $('#txtPrev span', b);
+        const sync = () => {
+          $$('[data-font]', b).forEach((x) => x.classList.toggle('on', x.dataset.font === v.font));
+          $$('[data-size]', b).forEach((x) => x.classList.toggle('on', x.dataset.size === v.sizeKey));
+          $$('[data-col]', b).forEach((x) => x.classList.toggle('on', x.dataset.col === v.color));
+          $('[data-st="bold"]', b).classList.toggle('on', v.bold);
+          $('[data-st="italic"]', b).classList.toggle('on', v.italic);
+          $('[data-st="bg"]', b).classList.toggle('on', v.bg);
+          prev.textContent = ta.value || 'Preview';
+          prev.style.fontFamily = FONTS[v.font].css;
+          prev.style.fontWeight = v.bold ? 700 : 400;
+          prev.style.fontStyle = v.italic ? 'italic' : 'normal';
+          prev.style.fontSize = Math.min(TEXT_SIZES[v.sizeKey], 60) + 'px';
+          prev.style.color = v.color;
+          const outline = contrastFor(v.color);
+          prev.style.background = v.bg ? (outline === '#000000' ? 'rgba(17,24,39,.88)' : 'rgba(255,255,255,.92)') : 'transparent';
+          prev.style.webkitTextStroke = v.bg ? '0' : `1px ${outline}`;
+        };
+        b.addEventListener('click', (e) => {
+          const t = e.target.closest('button');
+          if (!t) return;
+          if (t.dataset.font) v.font = t.dataset.font;
+          else if (t.dataset.size) v.sizeKey = t.dataset.size;
+          else if (t.dataset.col) v.color = t.dataset.col;
+          else if (t.dataset.st) v[t.dataset.st] = !v[t.dataset.st];
+          else return;
+          sync();
+          ta.focus();
+        });
+        ta.addEventListener('input', sync);
+        const ok = () => {
+          const text = ta.value.replace(/\s+$/, '');
+          close();
+          state.textStyle = { font: v.font, bold: v.bold, italic: v.italic, bg: v.bg, sizeKey: v.sizeKey };
+          store.set(STYLE_KEY, state.textStyle);
+          if (text) onOk({ ...v, text });
+        };
+        $('[data-ok]', b).onclick = ok;
+        $('[data-x]', b).onclick = close;
+        ta.addEventListener('keydown', (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); ok(); } });
+        sync();
+        ta.focus();
+        setTimeout(() => ta.focus(), 60);
+      }
+    );
+  }
+
+  // ---------------------------------------------------------------------
   //  Toolbar UI
   // ---------------------------------------------------------------------
+  function stampImage(kind, px = 40) {
+    const c = document.createElement('canvas');
+    const d = 2;
+    c.width = c.height = px * d;
+    const x = c.getContext('2d');
+    x.scale(d, d);
+    const wide = kind === 'www' || kind === 'ebi';
+    drawStamp(x, { type: 'stamp', kind, p: [px / 2, px / 2], size: wide ? px * 1.1 : px * (kind === 'num' ? 1.35 : 0.95), rot: 0, n: 1, color: '#e11d48' });
+    return c.toDataURL();
+  }
+
   function buildToolbar() {
     const tools = $('#tools');
     for (const t of TOOLS) {
@@ -650,18 +1413,36 @@
       b.dataset.tool = t.id;
       b.title = t.name;
       b.setAttribute('aria-label', t.name);
-      b.innerHTML = icon(t.id);
-      b.onclick = () => setTool(t.id);
+      b.innerHTML = t.id === 'stamp' ? `<img class="stamp-ico" alt="">` : icon(t.id);
+      if (t.id === 'stamp') b.dataset.popAnchor = '';
+      b.onclick = (e) => {
+        if (t.id === 'stamp') togglePop($('#stampPop'), e.currentTarget, 'right');
+        setTool(t.id);
+      };
       tools.append(b);
     }
+    const sp = $('#stampPop');
+    sp.innerHTML = '<div class="pop-h">Stamps</div>' + STAMPS.map((st) => `<button data-stamp="${st.id}"><img src="${stampImage(st.id)}" alt=""> ${st.name}</button>`).join('');
+    sp.addEventListener('click', (e) => {
+      const b = e.target.closest('[data-stamp]');
+      if (!b) return;
+      state.stamp = b.dataset.stamp;
+      setTool('stamp');
+      closePopovers();
+    });
+
     const cols = $('#colours');
     for (const c of COLOURS) {
       const b = document.createElement('button');
       b.className = 'swatch';
       b.dataset.colour = c;
-      b.title = 'Colour';
+      b.title = 'Colour (also recolours the selected mark)';
       b.innerHTML = `<span style="background:${c}"></span>`;
-      b.onclick = () => { state.colour = c; if (['pan', 'eraser', 'tick', 'cross', 'redact'].includes(state.tool)) setTool('pen'); updateToolbar(); };
+      b.onclick = () => {
+        state.colour = c;
+        if (!recolourSelection(c) && COLOUR_LESS_TOOLS.includes(state.tool)) setTool('pen');
+        updateToolbar();
+      };
       cols.append(b);
     }
     const sizes = $('#sizes');
@@ -680,12 +1461,19 @@
 
   function setTool(id) {
     state.tool = id;
-    for (const p of state.panes) p.canvas.style.cursor = id === 'pan' ? 'grab' : id === 'text' ? 'text' : 'crosshair';
+    const cursor = { pan: 'grab', select: 'default', text: 'text', laser: 'none' }[id] || 'crosshair';
+    for (const p of state.panes) {
+      p.canvas.style.cursor = cursor;
+      if (id !== 'select' && p.sel) { p.sel = null; p.request(); }
+    }
+    updateSelBar();
     updateToolbar();
   }
 
   function updateToolbar() {
     $$('#tools .tool').forEach((b) => b.classList.toggle('on', b.dataset.tool === state.tool));
+    const si = $('#tools [data-tool="stamp"] img');
+    if (si) si.src = stampImage(state.stamp, 28);
     $$('#colours .swatch').forEach((b) => b.classList.toggle('on', b.dataset.colour === state.colour));
     $$('#sizes .tool').forEach((b) => b.classList.toggle('on', b.dataset.size === state.size));
   }
@@ -698,8 +1486,8 @@
     $('#eyeBtn').disabled = !s;
     $('#eyeBtn').innerHTML = icon(s && !s.showAnn ? 'eyeoff' : 'eye');
     $('#eyeBtn').classList.toggle('on', !!(s && !s.showAnn));
-    const has = !!s;
-    $$('#viewCtl .vc').forEach((b) => (b.disabled = !has));
+    $$('#viewCtl .vc').forEach((b) => (b.disabled = !s));
+    $('#gridBtn').classList.toggle('on', !!activePane().grid);
   }
 
   // ---------------------------------------------------------------------
@@ -708,9 +1496,11 @@
   function setActive(i) {
     if (!state.compare) i = 0;
     if (state.active === i) return;
+    if (activePane().cropping) endCrop(activePane(), false);
     state.active = i;
     state.panes.forEach((p, j) => p.el.classList.toggle('active', j === i));
     updateActionButtons();
+    updateSelBar();
     renderStrip();
   }
 
@@ -738,6 +1528,7 @@
       setActive(1);
       toast('Compare: tap a pane, then tap a thumbnail to put it there.');
     } else {
+      if (state.panes[1].cropping) endCrop(state.panes[1], false);
       state.active = 0;
       state.panes[0].el.classList.add('active');
       state.panes[1].setSnap(null);
@@ -762,7 +1553,7 @@
     state.snaps.forEach((s, i) => {
       const t = document.createElement('button');
       t.className = 'thumb' + (s === a ? ' in-a' : '') + (s === b ? ' in-b' : '');
-      t.title = `Snap ${i + 1} – ${s.created.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+      t.title = `Snap ${i + 1}${s.title ? ' – ' + s.title : ''} – ${s.created.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
       if (s.url) {
         const img = document.createElement('img');
         img.src = s.url; img.alt = ''; img.draggable = false;
@@ -776,7 +1567,7 @@
       }
       const n = document.createElement('span');
       n.className = 'num';
-      n.textContent = '#' + (i + 1) + (s.local ? ' (laptop)' : '');
+      n.textContent = '#' + (i + 1) + (s.title ? ' ' + s.title : s.local ? ' (laptop)' : '');
       t.append(n);
       if (state.compare && (s === a || s === b)) {
         const bd = document.createElement('span');
@@ -906,11 +1697,11 @@
       cleanStaleAnnotations(ids);
       if (newest) show(state.snaps[state.snaps.length - 1]);
     } else if (newest) {
-      if (!activeSnap() || (state.autoShow && !state.compare)) {
+      if (!activeSnap() || (state.autoShow && !state.compare && !activePane().cropping)) {
         show(newest, state.compare ? state.active : 0);
         toast(`New snap #${snapNum(newest)}`);
       } else {
-        toast(`New snap #${snapNum(newest)} – tap here to show it`, () => show(newest));
+        toast(`New snap #${snapNum(newest)}: tap here to show it`, () => show(newest));
       }
     }
     updateEmpty();
@@ -995,11 +1786,11 @@
   };
 
   // ---------------------------------------------------------------------
-  //  Images from the laptop (open / drop / paste)
+  //  Images from the laptop (open / drop / paste) and blank pages
   // ---------------------------------------------------------------------
-  async function addLocal(blob, name = 'image') {
+  async function addLocal(blob, name = 'image', title = '') {
     if (!blob || !/^image\//.test(blob.type)) { toast('That file is not an image.'); return; }
-    const s = makeSnap({ id: `local-${Date.now()}-${state.localSeq++}`, local: true, created: new Date() });
+    const s = makeSnap({ id: `local-${Date.now()}-${state.localSeq++}`, local: true, created: new Date(), title });
     s.url = URL.createObjectURL(blob);
     try {
       s.img = await loadImg(s.url);
@@ -1014,7 +1805,44 @@
     updateEmpty();
   }
 
-  $('#openBtn').onclick = () => $('#fileInput').click();
+  async function addPage(kind) {
+    const W = 1600, H = 1131; // A4 landscape proportions
+    const c = document.createElement('canvas');
+    c.width = W; c.height = H;
+    const x = c.getContext('2d');
+    x.fillStyle = '#ffffff';
+    x.fillRect(0, 0, W, H);
+    if (kind === 'squared') {
+      x.strokeStyle = '#bfdbfe'; x.lineWidth = 1.5;
+      x.beginPath();
+      for (let i = 50; i < W; i += 50) { x.moveTo(i, 0); x.lineTo(i, H); }
+      for (let j = 50; j < H; j += 50) { x.moveTo(0, j); x.lineTo(W, j); }
+      x.stroke();
+    } else if (kind === 'lined') {
+      x.strokeStyle = '#bfdbfe'; x.lineWidth = 2;
+      x.beginPath();
+      for (let j = 110; j < H; j += 64) { x.moveTo(0, j); x.lineTo(W, j); }
+      x.stroke();
+      x.strokeStyle = '#fca5a5'; x.lineWidth = 2.5;
+      x.beginPath(); x.moveTo(140, 0); x.lineTo(140, H); x.stroke();
+    } else if (kind === 'dotted') {
+      x.fillStyle = '#94a3b8';
+      for (let i = 50; i < W; i += 50) for (let j = 50; j < H; j += 50) { x.beginPath(); x.arc(i, j, 2.6, 0, Math.PI * 2); x.fill(); }
+    }
+    const blob = await new Promise((r) => c.toBlob(r, 'image/png'));
+    const titles = { blank: 'Blank', squared: 'Squared', lined: 'Lined', dotted: 'Dotted' };
+    await addLocal(blob, 'page', titles[kind]);
+    setTool('pen');
+  }
+
+  $('#addPop').addEventListener('click', (e) => {
+    const b = e.target.closest('[data-add]');
+    if (!b) return;
+    closePopovers();
+    if (b.dataset.add === 'open') $('#fileInput').click();
+    else addPage(b.dataset.add);
+  });
+  $('#addBtn').onclick = (e) => { e.stopPropagation(); togglePop($('#addPop'), e.currentTarget); };
   $('#fileInput').addEventListener('change', async (e) => {
     for (const f of e.target.files) await addLocal(f, f.name);
     e.target.value = '';
@@ -1036,6 +1864,105 @@
   });
 
   // ---------------------------------------------------------------------
+  //  Timer
+  // ---------------------------------------------------------------------
+  const timer = { total: 0, left: 0, end: 0, running: false, iv: null, done: false };
+  const fmt = (ms) => { const t = Math.ceil(ms / 1000); return `${Math.floor(t / 60)}:${String(t % 60).padStart(2, '0')}`; };
+
+  function startTimer(sec) {
+    timer.total = sec * 1000;
+    timer.left = timer.total;
+    timer.done = false;
+    runTimer(true);
+    const el = $('#timer');
+    el.classList.remove('hidden');
+    if (!el.style.left) { el.style.right = '16px'; el.style.top = '16px'; }
+  }
+  function runTimer(on) {
+    timer.running = on;
+    if (on) timer.end = performance.now() + timer.left;
+    clearInterval(timer.iv);
+    if (on) timer.iv = setInterval(tickTimer, 200);
+    renderTimer();
+  }
+  function tickTimer() {
+    if (!timer.running) return;
+    timer.left = Math.max(0, timer.end - performance.now());
+    if (timer.left <= 0) {
+      timer.running = false;
+      timer.done = true;
+      clearInterval(timer.iv);
+      beep();
+    }
+    renderTimer();
+  }
+  function renderTimer() {
+    const el = $('#timer');
+    $('.t-digits', el).textContent = fmt(timer.left);
+    el.classList.toggle('done', timer.done);
+    el.classList.toggle('low', !timer.done && timer.left <= 10000 && timer.total > 10000);
+    $('[data-t="toggle"]', el).textContent = timer.running ? 'Pause' : timer.done ? 'Restart' : 'Start';
+  }
+  function beep() {
+    try {
+      const ac = new (window.AudioContext || window.webkitAudioContext)();
+      [0, 0.35, 0.7].forEach((t) => {
+        const o = ac.createOscillator(), g = ac.createGain();
+        o.frequency.value = 880;
+        o.connect(g); g.connect(ac.destination);
+        g.gain.setValueAtTime(0.0001, ac.currentTime + t);
+        g.gain.exponentialRampToValueAtTime(0.4, ac.currentTime + t + 0.02);
+        g.gain.exponentialRampToValueAtTime(0.0001, ac.currentTime + t + 0.28);
+        o.start(ac.currentTime + t); o.stop(ac.currentTime + t + 0.3);
+      });
+    } catch {}
+  }
+  $('#timerBtn').onclick = (e) => { e.stopPropagation(); togglePop($('#timerPop'), e.currentTarget); };
+  $('#timerPop').addEventListener('click', (e) => {
+    const b = e.target.closest('[data-sec]');
+    if (!b) return;
+    closePopovers();
+    startTimer(+b.dataset.sec);
+  });
+  $('#timer').addEventListener('click', (e) => {
+    const b = e.target.closest('[data-t]');
+    if (!b) return;
+    const k = b.dataset.t;
+    if (k === 'close') { runTimer(false); $('#timer').classList.add('hidden'); return; }
+    if (k === 'toggle') {
+      if (timer.done) { timer.left = timer.total; timer.done = false; }
+      runTimer(!timer.running);
+    } else if (k === 'plus' || k === 'minus') {
+      const delta = (k === 'plus' ? 60000 : -60000);
+      timer.left = Math.max(0, timer.left + delta);
+      timer.total = Math.max(timer.total, timer.left);
+      timer.done = false;
+      if (timer.running) timer.end = performance.now() + timer.left;
+      renderTimer();
+    } else if (k === 'reset') {
+      timer.left = timer.total; timer.done = false; runTimer(false);
+    }
+  });
+  (() => { // drag the timer by its header
+    const el = $('#timer'), head = $('.t-head', el);
+    let start = null;
+    head.addEventListener('pointerdown', (e) => {
+      if (e.target.closest('button')) return;
+      const r = el.getBoundingClientRect(), sr = stage.getBoundingClientRect();
+      start = { x: e.clientX, y: e.clientY, l: r.left - sr.left, t: r.top - sr.top };
+      head.setPointerCapture(e.pointerId);
+    });
+    head.addEventListener('pointermove', (e) => {
+      if (!start) return;
+      const sr = stage.getBoundingClientRect();
+      el.style.right = 'auto';
+      el.style.left = clamp(start.l + e.clientX - start.x, 0, sr.width - el.offsetWidth) + 'px';
+      el.style.top = clamp(start.t + e.clientY - start.y, 0, sr.height - el.offsetHeight) + 'px';
+    });
+    head.addEventListener('pointerup', () => (start = null));
+  })();
+
+  // ---------------------------------------------------------------------
   //  Saving
   // ---------------------------------------------------------------------
   const pad = (n) => String(n).padStart(2, '0');
@@ -1044,7 +1971,7 @@
 
   function fileName(s, withAnn) {
     const parts = [dateStr(s.created), slug(state.lessonLabel), 'snap' + pad(snapNum(s))].filter(Boolean);
-    return parts.join('_') + (withAnn && s.anns.some((a) => a.type !== 'redact') ? '_annotated' : '') + '.jpg';
+    return parts.join('_') + (withAnn && s.anns.some((a) => a.type !== 'redact' && a.type !== 'cover') ? '_annotated' : '') + '.jpg';
   }
 
   async function ensureImg(s) {
@@ -1060,9 +1987,9 @@
     const x = c.getContext('2d');
     x.fillStyle = '#fff';
     x.fillRect(0, 0, dw, dh);
-    x.setTransform(rotMatrix(s.rotation, s.w, s.h));
+    x.setTransform(imgMatrix(s));
     x.drawImage(s.img, 0, 0);
-    drawAnns(x, s.anns, withAnn);
+    drawAnns(x, s.anns, withAnn, EXPORT_VIEW);
     return c;
   }
 
@@ -1114,10 +2041,7 @@
       return true;
     }
     const zip = new JSZip();
-    for (const s of state.snaps) {
-      const blob = await toBlob(await renderExport(s, withAnn));
-      zip.file(fileName(s, withAnn), blob);
-    }
+    for (const s of state.snaps) zip.file(fileName(s, withAnn), await toBlob(await renderExport(s, withAnn)));
     const out = await zip.generateAsync({ type: 'blob' });
     const name = [dateStr(new Date()), slug(state.lessonLabel), 'snaps' + (withAnn ? '_annotated' : '')].filter(Boolean).join('_') + '.zip';
     download(out, name);
@@ -1125,20 +2049,34 @@
     return true;
   }
 
-  // Save popover
+  // ---------------------------------------------------------------------
+  //  Popovers
+  // ---------------------------------------------------------------------
+  function openPop(pop, anchor, side = 'below') {
+    $$('.popover').forEach((p) => { if (p !== pop) p.classList.add('hidden'); });
+    pop.classList.remove('hidden');
+    const r = anchor.getBoundingClientRect();
+    const pw = pop.offsetWidth, ph = pop.offsetHeight;
+    let x, y;
+    if (side === 'right') { x = r.right + 8; y = r.top; }
+    else { x = r.left; y = r.bottom + 6; }
+    pop.style.left = clamp(x, 6, window.innerWidth - pw - 6) + 'px';
+    pop.style.top = clamp(y, 6, window.innerHeight - ph - 6) + 'px';
+  }
+  function togglePop(pop, anchor, side) {
+    if (!pop.classList.contains('hidden')) { closePopovers(); return; }
+    openPop(pop, anchor, side);
+  }
+  function closePopovers() { $$('.popover').forEach((p) => p.classList.add('hidden')); }
+  document.addEventListener('pointerdown', (e) => {
+    if (!e.target.closest('.popover') && !e.target.closest('[data-pop-anchor]')) closePopovers();
+  });
+
   const savePop = $('#savePop');
   $('#lessonLabel').value = state.lessonLabel;
   $('#lessonLabel').addEventListener('input', (e) => { state.lessonLabel = e.target.value; store.set(LABEL_KEY, state.lessonLabel); });
-  $('#saveBtn').onclick = (e) => {
-    e.stopPropagation();
-    if (!savePop.classList.contains('hidden')) { closePopovers(); return; }
-    const r = e.currentTarget.getBoundingClientRect();
-    savePop.style.top = r.bottom + 6 + 'px';
-    savePop.style.left = Math.min(r.left, window.innerWidth - 300) + 'px';
-    savePop.classList.remove('hidden');
-  };
+  $('#saveBtn').onclick = (e) => { e.stopPropagation(); togglePop(savePop, e.currentTarget); };
   savePop.addEventListener('click', async (e) => {
-    e.stopPropagation();
     const b = e.target.closest('button[data-save]');
     if (!b) return;
     closePopovers();
@@ -1154,8 +2092,6 @@
       toast('Save failed: ' + friendlyError(err));
     }
   });
-  function closePopovers() { savePop.classList.add('hidden'); }
-  document.addEventListener('pointerdown', (e) => { if (!e.target.closest('.popover') && !e.target.closest('#saveBtn')) closePopovers(); });
 
   // ---------------------------------------------------------------------
   //  Modals
@@ -1163,29 +2099,13 @@
   let modalClose = null;
   function openModal(html, bind) {
     const body = $('#modalBody');
+    body.className = 'modal';
     body.innerHTML = html;
     $('#modal').classList.remove('hidden');
     modalClose = () => { $('#modal').classList.add('hidden'); body.innerHTML = ''; modalClose = null; };
     bind(body, modalClose);
   }
   $('#modal').addEventListener('pointerdown', (e) => { if (e.target.id === 'modal' && modalClose) modalClose(); });
-
-  function askText(cb) {
-    openModal(
-      `<h2>Add text</h2>
-       <textarea id="txtIn" placeholder="Type here…"></textarea>
-       <div class="row"><button class="btn ghost" data-x>Cancel</button><button class="btn primary" data-ok>Add</button></div>`,
-      (b, close) => {
-        const ta = $('#txtIn', b);
-        ta.focus();
-        setTimeout(() => ta.focus(), 60); // again after the pointer-up, which can steal focus
-        const ok = () => { const t = ta.value.replace(/\s+$/, ''); close(); if (t) cb(t); };
-        $('[data-ok]', b).onclick = ok;
-        $('[data-x]', b).onclick = close;
-        ta.addEventListener('keydown', (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); ok(); } });
-      }
-    );
-  }
 
   function confirmBox(title, text, okLabel, danger, cb) {
     openModal(
@@ -1214,7 +2134,6 @@
     (b, close) => { drawQr($('#qrBig', b), 260); $('#qrUrl', b).textContent = phoneUrl(); $('[data-x]', b).onclick = close; }
   );
 
-  // End lesson
   $('#endBtn').onclick = () => {
     const n = state.snaps.length;
     openModal(
@@ -1251,7 +2170,7 @@
     for (const s of [...state.snaps]) removeSnap(s);
     for (const k of store.keys()) if (k.startsWith(ANN_PREFIX)) store.del(k);
     if (state.compare) setCompare(false);
-    toast('Lesson ended – snaps deleted from the cloud');
+    toast('Lesson ended: snaps deleted from the cloud');
   }
 
   function deleteCurrent() {
@@ -1282,6 +2201,17 @@
   // ---------------------------------------------------------------------
   //  Buttons & keyboard
   // ---------------------------------------------------------------------
+  const GRID_STEPS = [0, 16, 32, 8];
+  const GRID_NAMES = { 0: 'Grid off', 16: 'Grid: medium squares', 32: 'Grid: small squares', 8: 'Grid: large squares' };
+  function cycleGrid() {
+    const p = activePane();
+    if (!p.snap) return;
+    p.grid = GRID_STEPS[(GRID_STEPS.indexOf(p.grid) + 1) % GRID_STEPS.length];
+    p.request();
+    updateActionButtons();
+    toast(GRID_NAMES[p.grid]);
+  }
+
   function wireButtons() {
     $$('[data-icon]').forEach((b) => {
       const label = b.textContent.trim();
@@ -1297,6 +2227,8 @@
     $('#zoomOut').onclick = () => centreZoom(1 / 1.4);
     $('#fitBtn').onclick = () => activePane().fit();
     $('#rotateBtn').onclick = rotate;
+    $('#cropBtn').onclick = () => (activePane().cropping ? endCrop(activePane(), true) : startCrop());
+    $('#gridBtn').onclick = cycleGrid;
     $('#deleteBtn').onclick = deleteCurrent;
     $('#autoBtn').onclick = () => {
       state.autoShow = !state.autoShow;
@@ -1306,13 +2238,26 @@
     $('#autoBtn').classList.toggle('on', state.autoShow);
     $('#compareBtn').onclick = () => { if (state.snaps.length) setCompare(!state.compare); else toast('No snaps to compare yet'); };
     $('#fsBtn').onclick = toggleFullscreen;
+    $('#spotOff').onclick = clearSpot;
+    $('#cropBar').addEventListener('click', (e) => {
+      const b = e.target.closest('[data-crop]');
+      if (!b) return;
+      const k = b.dataset.crop;
+      endCrop(activePane(), k === 'done' ? true : k === 'reset' ? 'reset' : false);
+    });
+    $('#selBar').addEventListener('click', (e) => {
+      const b = e.target.closest('[data-sel]');
+      if (b) selAction(b.dataset.sel);
+    });
   }
 
   function rotate() {
-    const s = activeSnap();
-    if (!s || !s.w) return;
+    const p = activePane();
+    const s = p.snap;
+    if (!s || !s.w || p.cropping) return;
     s.rotation = (s.rotation + 90) % 360;
-    for (const p of state.panes) if (p.snap === s) p.fit();
+    for (const q of state.panes) if (q.snap === s) { q.spot = null; q.fit(); }
+    updateSpotChip();
     persist(s);
     renderStrip();
   }
@@ -1325,21 +2270,31 @@
   const isTyping = (el) => el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.isContentEditable);
 
   document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape') { if (modalClose) modalClose(); closePopovers(); return; }
+    if (e.key === 'Escape') {
+      if (modalClose) { modalClose(); return; }
+      closePopovers();
+      const p = activePane();
+      if (p.cropping) endCrop(p, false);
+      else if (p.sel) selAction('done');
+      else if (state.panes.some((q) => q.spot)) clearSpot();
+      return;
+    }
     if (isTyping(e.target) || modalClose) return;
     const k = e.key.toLowerCase();
     if ((e.ctrlKey || e.metaKey) && k === 'z') { e.preventDefault(); e.shiftKey ? redo() : undo(); return; }
     if ((e.ctrlKey || e.metaKey) && k === 'y') { e.preventDefault(); redo(); return; }
+    if ((e.ctrlKey || e.metaKey) && k === 'd' && activePane().sel) { e.preventDefault(); selAction('dup'); return; }
     if (e.ctrlKey || e.metaKey || e.altKey) return;
     if (e.key === 'ArrowLeft') { step(-1); e.preventDefault(); }
     else if (e.key === 'ArrowRight') { step(1); e.preventDefault(); }
     else if (k === 'f') toggleFullscreen();
     else if (k === 'h') toggleAnn();
     else if (k === 'r') rotate();
+    else if (k === 'g') cycleGrid();
     else if (k === '0') activePane().fit();
     else if (k === '+' || k === '=') $('#zoomIn').click();
     else if (k === '-') $('#zoomOut').click();
-    else if (k === 'delete') deleteCurrent();
+    else if (k === 'delete' || k === 'backspace') { if (activePane().sel) selAction('del'); else if (k === 'delete') deleteCurrent(); }
     else {
       const t = TOOLS.find((t) => t.key === k);
       if (t) setTool(t.id);
@@ -1347,7 +2302,7 @@
   });
 
   window.addEventListener('beforeunload', () => {
-    for (const s of state.snaps) if (!s.local && (s.anns.length || s.rotation)) store.set(ANN_PREFIX + s.id, { anns: s.anns, rotation: s.rotation });
+    for (const s of state.snaps) if (!s.local && (s.anns.length || s.rotation || s.crop)) store.set(ANN_PREFIX + s.id, { anns: s.anns, rotation: s.rotation, crop: s.crop });
   });
 
   // ---------------------------------------------------------------------
@@ -1357,14 +2312,17 @@
     $('#mark').textContent = CFG.schoolShort;
     $('#appName').textContent = CFG.appName;
     document.title = CFG.appName + ' – Board';
+    state.panes = [new Pane(0, $('#pane0')), new Pane(1, $('#pane1'))];
     wireButtons();
     buildToolbar();
-    state.panes = [new Pane(0, $('#pane0')), new Pane(1, $('#pane1'))];
     state.panes[0].el.classList.add('active');
     setTool(state.tool);
     updateActionButtons();
     updateEmpty();
     drawQr($('#emptyQr'), 170);
+    if (document.fonts && document.fonts.load) {
+      document.fonts.load('40px "Patrick Hand"').then(() => state.panes.forEach((p) => p.request())).catch(() => {});
+    }
 
     if (!configured) {
       $('#notConfigured').classList.remove('hidden');
@@ -1378,7 +2336,7 @@
   }
 
   // Exposed for troubleshooting from the browser console.
-  window.snapBoard = { state, addLocal };
+  window.snapBoard = { state, addLocal, addPage };
 
   boot();
 })();

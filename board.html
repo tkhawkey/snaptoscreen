@@ -4,6 +4,9 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Snap to Screen – Board</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Patrick+Hand&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="board.css">
 </head>
 <body>
@@ -15,9 +18,10 @@
     <div class="spacer"></div>
     <button class="tb toggle" id="autoBtn" data-icon="bolt" title="Show new snaps automatically">Auto-show</button>
     <button class="tb toggle" id="compareBtn" data-icon="compare" title="Show two snaps side by side">Compare</button>
+    <button class="tb" id="timerBtn" data-icon="timer" data-pop-anchor title="Countdown timer">Timer</button>
     <button class="tb" id="phoneBtn" data-icon="phone" title="Show QR code for the phone page">Phone</button>
-    <button class="tb" id="openBtn" data-icon="image" title="Open an image from this laptop">Open</button>
-    <button class="tb" id="saveBtn" data-icon="save" title="Save to this laptop">Save</button>
+    <button class="tb" id="addBtn" data-icon="add" data-pop-anchor title="Open an image or add a blank page">Add</button>
+    <button class="tb" id="saveBtn" data-icon="save" data-pop-anchor title="Save to this laptop">Save</button>
     <button class="tb danger" id="endBtn" data-icon="stop" title="Delete all snaps from the cloud">End lesson</button>
     <button class="tb icon-only" id="fsBtn" data-icon="fullscreen" title="Full screen (F)"></button>
   </header>
@@ -47,7 +51,7 @@
           <li>It appears here within a second or two.</li>
         </ol>
         <div class="qr" id="emptyQr"></div>
-        <p class="hint" id="emptyHint">You can also drag an image here, paste one (Ctrl+V) or use <b>Open</b>.</p>
+        <p class="hint">Or use <b>Add</b> for a blank page or an image from this laptop (you can also drag one here or paste with Ctrl+V).</p>
         <p class="warn hidden" id="notConfigured">Not connected to Supabase yet: add the URL and key to <code>config.js</code>. Images opened from this laptop still work.</p>
       </div>
     </div>
@@ -57,8 +61,39 @@
       <button class="vc" id="fitBtn" data-icon="fit" title="Fit to screen (0)"></button>
       <button class="vc" id="zoomIn" data-icon="zoomin" title="Zoom in (+)"></button>
       <button class="vc" id="rotateBtn" data-icon="rotate" title="Rotate 90° (R)"></button>
+      <button class="vc" id="cropBtn" data-icon="crop" title="Crop"></button>
+      <button class="vc" id="gridBtn" data-icon="grid" title="Grid overlay (G) – tap again for different sizes"></button>
       <button class="vc" id="deleteBtn" data-icon="trash" title="Delete this snap"></button>
     </div>
+
+    <div id="selBar" class="floatbar hidden">
+      <button data-sel="edit">Edit text</button>
+      <button data-sel="dup">Duplicate</button>
+      <button data-sel="front">To front</button>
+      <button data-sel="del" class="danger">Delete</button>
+      <button data-sel="done">Done</button>
+    </div>
+
+    <div id="spotChip" class="floatbar chip hidden">Spotlight on <button id="spotOff">Turn off</button></div>
+
+    <div id="cropBar" class="floatbar crop hidden">
+      <span>Drag the corners, or drag inside to move</span>
+      <button data-crop="reset">Reset</button>
+      <button data-crop="cancel">Cancel</button>
+      <button data-crop="done" class="primary">Done</button>
+    </div>
+
+    <div id="timer" class="hidden">
+      <div class="t-head"><span>Timer</span><button data-t="close" title="Close timer">✕</button></div>
+      <div class="t-digits">0:00</div>
+      <div class="t-ctl">
+        <button data-t="minus">−1 min</button>
+        <button data-t="toggle" class="primary">Pause</button>
+        <button data-t="plus">+1 min</button>
+        <button data-t="reset">Reset</button>
+      </div>
+    </div>
+
     <div id="dropHint" class="hidden">Drop image to show it</div>
   </main>
 
@@ -80,7 +115,7 @@
 <!-- Generic modal -->
 <div class="overlay hidden" id="modal"><div class="modal" id="modalBody"></div></div>
 
-<!-- Save menu -->
+<!-- Popovers -->
 <div class="popover hidden" id="savePop">
   <label class="field">Lesson label for file names
     <input id="lessonLabel" placeholder="e.g. 9B Maths">
@@ -95,8 +130,31 @@
   <div class="pop-h">All snaps (zip file)</div>
   <button data-save="all-ann">With annotations</button>
   <button data-save="all-clean">Without annotations</button>
-  <p class="pop-note">Redaction boxes are always kept. Files go to this laptop's Downloads folder.</p>
+  <p class="pop-note">Redaction boxes and hidden covers are always kept. Files go to this laptop's Downloads folder.</p>
 </div>
+
+<div class="popover hidden" id="addPop">
+  <button data-add="open">Image from this laptop…</button>
+  <div class="pop-h">New page</div>
+  <button data-add="blank">Blank</button>
+  <button data-add="squared">Squared</button>
+  <button data-add="lined">Lined</button>
+  <button data-add="dotted">Dotted</button>
+</div>
+
+<div class="popover hidden" id="timerPop">
+  <div class="pop-h">Countdown</div>
+  <div class="pop-grid">
+    <button data-sec="30">30 s</button>
+    <button data-sec="60">1 min</button>
+    <button data-sec="120">2 min</button>
+    <button data-sec="180">3 min</button>
+    <button data-sec="300">5 min</button>
+    <button data-sec="600">10 min</button>
+  </div>
+</div>
+
+<div class="popover stamps hidden" id="stampPop"></div>
 
 <input type="file" id="fileInput" accept="image/*" multiple hidden>
 <div id="toast"></div>

@@ -39,14 +39,24 @@ Upload the whole `snap-to-screen` folder to Netlify (drag and drop it onto **Sit
 
 | Tool | Use |
 |---|---|
-| Move / zoom | Drag to move. Pinch with two fingers to zoom (this works with any tool selected). |
+| Move / zoom | Drag to move. Pinch with two fingers to zoom (this works with any tool selected). Tap a cover to reveal or re-hide it. |
+| Select | Tap any mark to select it. Drag it to move it, drag a corner handle to resize it, or tap a colour to recolour it. The bar above it offers **Edit text**, **Duplicate**, **To front**, **Delete** and **Done**. Double-tap text to edit it. |
 | Pen / highlighter | Draw freehand. |
 | Arrow, box, circle | Drag from one corner to the other. |
-| Text | Tap where the text should go, type, press Enter. |
-| Tick / cross stamps | Tap to place. |
+| Text | Tap where the text should go. Choose a font (Clean, Handwriting, Serif, Typewriter), bold, italic, a background, size and colour, then press Enter. Tap existing text with this tool to edit it. Your last style is remembered. |
+| Stamps | Tap the stamp button to choose: tick, cross, question mark, star, numbered steps (1, 2, 3… counting up automatically), WWW or EBI. Then tap (or drag) to place. |
 | Redact | Drag a solid black box over a name. It stays visible even when annotations are hidden. |
+| Hide & reveal | Drag a grey "?" card over part of the work. Tap it (with this tool or Move) and it slides away. Tap the dashed outline to cover it again. |
 | Eraser | Tap or drag over a mark to remove it. |
+| Spotlight | Drag a circle (or just tap) and everything else is dimmed. Drag inside the circle to move it, or drag a new one. Use **Turn off** at the top (or Esc) to remove it. |
+| Laser pointer | Point without leaving marks. The red trail fades after a second. |
 | Undo / redo / hide / clear | Bottom of the toolbar. Annotations are kept separately for each snap. |
+
+**Bottom-right buttons:** zoom out, fit, zoom in, rotate, **crop** (drag the corners, then **Done**, or **Reset** to undo the crop), **grid** (tap repeatedly for medium, small or large squares, then off), and delete.
+
+**Top bar extras:**
+- **Timer**: choose 30 s to 10 min. The timer floats over the board and can be dragged by its title. It has −1 / +1 min, pause and reset, turns amber for the last 10 seconds, and beeps and flashes at zero.
+- **Add**: an image from this laptop, or a new blank, squared, lined or dotted page to write on. Pages only exist on this board until you save them or end the lesson.
 
 - **Auto-show** (on by default) switches to each new snap as it arrives. Turn it off when you don't want to lose your place: new snaps then wait in the strip.
 - **Compare** shows two snaps side by side. Tap a pane, then tap a thumbnail to put it there. Each pane zooms separately.
@@ -54,7 +64,9 @@ Upload the whole `snap-to-screen` folder to Netlify (drag and drop it onto **Sit
 - **Save** offers this snap with or without annotations, both compared snaps as one image, or all snaps as a zip. Files go to Downloads. Type a lesson label (e.g. `9B Maths`) to have it added to the file names.
 - **End lesson** lets you save everything first, then deletes all snaps from the cloud.
 
-Keyboard: ← → previous/next · F full screen · H hide annotations · R rotate · 0 fit · + − zoom · Ctrl+Z / Ctrl+Y undo/redo · P pen · I highlighter · A arrow · B box · C circle · T text · E eraser · V move.
+Keyboard: ← → previous/next · F full screen · H hide annotations · R rotate · G grid · 0 fit · + − zoom · Ctrl+Z / Ctrl+Y undo/redo · Ctrl+D duplicate selection · Delete removes the selection · Esc deselects / turns off spotlight / cancels crop · V move · S select · P pen · I highlighter · A arrow · B box · C circle · T text · M stamps · K hide & reveal · E eraser · O spotlight · L laser.
+
+Saved images include crops, rotation and any covers that are still hidden. They leave out the grid, spotlight and laser.
 
 ## Privacy and automatic deletion
 - Photos are deleted when you press **End lesson**. Anything older than **12 hours** is also deleted whenever the phone or board is used, and every hour if you ran `2-hourly-cleanup.sql`.
