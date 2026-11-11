@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Snap to Screen – Board</title>
+<link rel="stylesheet" href="board.css">
+</head>
+<body>
+<div id="app">
+  <header id="topbar">
+    <div class="brand"><span class="mark" id="mark">CIS</span><span class="app-name" id="appName">Snap to Screen</span></div>
+    <span class="room" id="roomLabel"></span>
+    <span class="live" id="live"><i></i><span>Offline</span></span>
+    <div class="spacer"></div>
+    <button class="tb toggle" id="autoBtn" data-icon="bolt" title="Show new snaps automatically">Auto-show</button>
+    <button class="tb toggle" id="compareBtn" data-icon="compare" title="Show two snaps side by side">Compare</button>
+    <button class="tb" id="phoneBtn" data-icon="phone" title="Show QR code for the phone page">Phone</button>
+    <button class="tb" id="openBtn" data-icon="image" title="Open an image from this laptop">Open</button>
+    <button class="tb" id="saveBtn" data-icon="save" title="Save to this laptop">Save</button>
+    <button class="tb danger" id="endBtn" data-icon="stop" title="Delete all snaps from the cloud">End lesson</button>
+    <button class="tb icon-only" id="fsBtn" data-icon="fullscreen" title="Full screen (F)"></button>
+  </header>
+
+  <aside id="toolbar">
+    <div class="grp tools" id="tools"></div>
+    <div class="grp colours" id="colours"></div>
+    <div class="grp sizes" id="sizes"></div>
+    <div class="grp actions">
+      <button class="tool" id="undoBtn" data-icon="undo" title="Undo (Ctrl+Z)"></button>
+      <button class="tool" id="redoBtn" data-icon="redo" title="Redo (Ctrl+Y)"></button>
+      <button class="tool" id="eyeBtn" data-icon="eye" title="Hide / show annotations (H)"></button>
+      <button class="tool" id="clearBtn" data-icon="clearmarks" title="Clear annotations on this snap"></button>
+    </div>
+  </aside>
+
+  <main id="stage">
+    <div class="pane" id="pane0"><canvas></canvas><div class="pane-tag"></div></div>
+    <div class="pane hidden" id="pane1"><canvas></canvas><div class="pane-tag"></div></div>
+
+    <div id="empty">
+      <div class="empty-card">
+        <h2>Waiting for snaps…</h2>
+        <ol>
+          <li>Open the phone page on your iPhone (scan the code).</li>
+          <li>Tap <b>Snap to board</b> and take a photo.</li>
+          <li>It appears here within a second or two.</li>
+        </ol>
+        <div class="qr" id="emptyQr"></div>
+        <p class="hint" id="emptyHint">You can also drag an image here, paste one (Ctrl+V) or use <b>Open</b>.</p>
+        <p class="warn hidden" id="notConfigured">Not connected to Supabase yet: add the URL and key to <code>config.js</code>. Images opened from this laptop still work.</p>
+      </div>
+    </div>
+
+    <div id="viewCtl">
+      <button class="vc" id="zoomOut" data-icon="zoomout" title="Zoom out (−)"></button>
+      <button class="vc" id="fitBtn" data-icon="fit" title="Fit to screen (0)"></button>
+      <button class="vc" id="zoomIn" data-icon="zoomin" title="Zoom in (+)"></button>
+      <button class="vc" id="rotateBtn" data-icon="rotate" title="Rotate 90° (R)"></button>
+      <button class="vc" id="deleteBtn" data-icon="trash" title="Delete this snap"></button>
+    </div>
+    <div id="dropHint" class="hidden">Drop image to show it</div>
+  </main>
+
+  <footer id="strip"></footer>
+</div>
+
+<!-- Passcode gate -->
+<div class="overlay hidden" id="gate">
+  <form class="modal" id="gateForm" autocomplete="off">
+    <h2>Board passcode</h2>
+    <p>Enter the same passcode you use on your phone.</p>
+    <input id="gateCode" type="password" placeholder="Passcode" required>
+    <label class="check"><input type="checkbox" id="gateRemember" checked> Remember on this laptop</label>
+    <div class="err" id="gateErr"></div>
+    <div class="row"><button type="button" class="btn ghost" id="gateSkip">Use without phone</button><button class="btn primary" id="gateGo">Connect</button></div>
+  </form>
+</div>
+
+<!-- Generic modal -->
+<div class="overlay hidden" id="modal"><div class="modal" id="modalBody"></div></div>
+
+<!-- Save menu -->
+<div class="popover hidden" id="savePop">
+  <label class="field">Lesson label for file names
+    <input id="lessonLabel" placeholder="e.g. 9B Maths">
+  </label>
+  <div class="pop-h">This snap</div>
+  <button data-save="one-ann">With annotations</button>
+  <button data-save="one-clean">Without annotations</button>
+  <div class="cmp-only">
+    <div class="pop-h">Side by side</div>
+    <button data-save="pair-ann">Both snaps in one image</button>
+  </div>
+  <div class="pop-h">All snaps (zip file)</div>
+  <button data-save="all-ann">With annotations</button>
+  <button data-save="all-clean">Without annotations</button>
+  <p class="pop-note">Redaction boxes are always kept. Files go to this laptop's Downloads folder.</p>
+</div>
+
+<input type="file" id="fileInput" accept="image/*" multiple hidden>
+<div id="toast"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script src="config.js"></script>
+<script src="common.js"></script>
+<script src="board.js"></script>
+</body>
+</html>

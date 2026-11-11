@@ -1,0 +1,81 @@
+# Snap to Screen
+
+Take a photo on your iPhone and it appears on the classroom board a second or two later. You can then zoom, annotate, compare and save it, and delete everything when the lesson ends.
+
+| Page | Where | What it does |
+|---|---|---|
+| `phone.html` | iPhone (Safari, ideally added to the Home Screen) | A big button that opens the camera. Each photo is shrunk to 1600 px and sent straight away. |
+| `board.html` | Laptop / SMART Board in Edge, full screen | Shows each new snap automatically. Zoom, annotate, compare, save and end the lesson. |
+
+## One-time setup (about 10 minutes)
+
+### 1. Database (Supabase library project)
+1. Open the **library** project → **SQL Editor** → **New query**.
+2. Open `supabase/1-setup.sql`, scroll to the bottom and **change the passcode** (three or four random words, e.g. `violet tractor puddle`). You can also change `'My classroom'` to a label such as `'Room 12'`.
+3. Paste the whole file in and press **Run**. You should see "Success".
+4. Optional: run `supabase/2-hourly-cleanup.sql` the same way. It adds an hourly job that deletes anything older than 12 hours, even when nobody opens the app.
+
+Nothing here touches your existing library tables. Everything new starts with `snap`.
+
+### 2. Settings
+Open `config.js` and paste in:
+- **supabaseUrl**: Project Settings → API → Project URL
+- **supabaseAnonKey**: the **anon public** key (or the **publishable** key). Never use the `service_role` or secret key.
+
+These are the same values your library site already uses.
+
+### 3. Hosting
+Upload the whole `snap-to-screen` folder to Netlify (drag and drop it onto **Sites**) or to GitHub Pages, like your other tools. You'll get an address such as `https://cis-snap.netlify.app/`.
+
+### 4. First use
+- **Board**: open `…/board.html` in Edge, enter the passcode and tick **Remember on this laptop**. Press **F** (or the full-screen button).
+- **Phone**: scan the QR code on the board (or tap **Phone** in the top bar), enter the passcode once, then use **Share → Add to Home Screen** so it opens like an app.
+
+## Using it in a lesson
+
+**From the phone:** tap **Snap to board**, take the photo, tap **Use Photo**. The list underneath shows **✓ On the board** for each one. Use **Remove** to take a photo back off the board.
+
+**On the board:**
+
+| Tool | Use |
+|---|---|
+| Move / zoom | Drag to move. Pinch with two fingers to zoom (this works with any tool selected). |
+| Pen / highlighter | Draw freehand. |
+| Arrow, box, circle | Drag from one corner to the other. |
+| Text | Tap where the text should go, type, press Enter. |
+| Tick / cross stamps | Tap to place. |
+| Redact | Drag a solid black box over a name. It stays visible even when annotations are hidden. |
+| Eraser | Tap or drag over a mark to remove it. |
+| Undo / redo / hide / clear | Bottom of the toolbar. Annotations are kept separately for each snap. |
+
+- **Auto-show** (on by default) switches to each new snap as it arrives. Turn it off when you don't want to lose your place: new snaps then wait in the strip.
+- **Compare** shows two snaps side by side. Tap a pane, then tap a thumbnail to put it there. Each pane zooms separately.
+- **Open**, drag and drop, or **Ctrl+V** puts an image from the laptop on the board. It isn't uploaded anywhere.
+- **Save** offers this snap with or without annotations, both compared snaps as one image, or all snaps as a zip. Files go to Downloads. Type a lesson label (e.g. `9B Maths`) to have it added to the file names.
+- **End lesson** lets you save everything first, then deletes all snaps from the cloud.
+
+Keyboard: ← → previous/next · F full screen · H hide annotations · R rotate · 0 fit · + − zoom · Ctrl+Z / Ctrl+Y undo/redo · P pen · I highlighter · A arrow · B box · C circle · T text · E eraser · V move.
+
+## Privacy and automatic deletion
+- Photos are deleted when you press **End lesson**. Anything older than **12 hours** is also deleted whenever the phone or board is used, and every hour if you ran `2-hourly-cleanup.sql`.
+- The photo tables have no public access at all. The only way in is through the `snap_*` functions, and each one checks the passcode. Wrong guesses are slowed down.
+- Keep faces out of shot, and use **Redact** to cover names.
+- Annotations are remembered in the board browser until the lesson ends, so an accidental refresh doesn't lose them.
+
+## Supabase footprint
+Each photo is about 300–450 KB. Photos are stored as encoded text in the database rather than in Storage, which keeps setup to a single SQL file and makes deletion reliable. Even at about 30 snaps a day, you'd add roughly 250 MB of egress a month (5 GB allowance). Database use stays at a few MB because photos are deleted after the lesson. There are no Edge Functions.
+
+## Changing things
+- **Branding**: change `schoolShort` / `appName` in `config.js`, and `--brand` / `--accent` at the top of `board.css` and `phone.html`.
+- **Photo size**: `maxImageSize` and `jpegQuality` in `config.js`.
+- **Change the passcode**: in the SQL Editor run
+  `update public.snap_rooms set code_hash = public.snap_hash('new words here');`
+  then sign out on the phone and enter the new one. On the board, clear the site data or use the gate when it reappears.
+
+## Troubleshooting
+| Symptom | Fix |
+|---|---|
+| "The database is not set up yet" | Run `1-setup.sql` in the **library** project, and check `config.js` points at that project. |
+| Board shows "Checking every 15 s" instead of "Live" | Realtime is blocked (often by school Wi-Fi). Snaps still arrive, but take up to 15 seconds. |
+| Photo appears sideways | Press **R** or the rotate button. |
+| "There are already 200 snaps" | Press **End lesson** on the board. |
