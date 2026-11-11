@@ -30,6 +30,7 @@
     pen: '<path d="M4 20l1-4L16 5l3 3L8 19z"/><path d="M14 7l3 3"/>',
     hl: '<path d="M15.5 4.5l4 4-8 8-4-4z"/><path d="M7.5 12.5 5 15v2h2l2.5-2.5"/><path d="M3 21h18" stroke-width="3" opacity=".6"/>',
     arrow: '<path d="M5 19 19 5M10 5h9v9"/>',
+    line: '<path d="M5 19 19 5"/>',
     rect: '<rect x="4" y="6" width="16" height="12" rx="1"/>',
     ellipse: '<ellipse cx="12" cy="12" rx="9" ry="6.5"/>',
     text: '<path d="M5 7V5h14v2M12 5v14M9 19h6"/>',
@@ -69,9 +70,10 @@
     { id: 'select', name: 'Select (S): tap a mark to move, resize, recolour or delete it', key: 's' },
     { id: 'pen', name: 'Pen (P)', key: 'p' },
     { id: 'hl', name: 'Highlighter (I)', key: 'i' },
-    { id: 'arrow', name: 'Arrow (A)', key: 'a' },
-    { id: 'rect', name: 'Box (B)', key: 'b' },
-    { id: 'ellipse', name: 'Circle (C)', key: 'c' },
+    { id: 'line', name: 'Line (N): snaps level/upright/45°; hold Shift for 15° steps', key: 'n' },
+    { id: 'arrow', name: 'Arrow (A): snaps level/upright/45°; hold Shift for 15° steps', key: 'a' },
+    { id: 'rect', name: 'Box (B): snaps to a square when close; hold Shift to force', key: 'b' },
+    { id: 'ellipse', name: 'Circle (C): snaps to a perfect circle when close; hold Shift to force', key: 'c' },
     { id: 'text', name: 'Text (T): tap to add, tap existing text to edit', key: 't' },
     { id: 'stamp', name: 'Stamps (M): tap again to choose a stamp', key: 'm' },
     { id: 'redact', name: 'Redact: cover a name' },
@@ -342,6 +344,11 @@
         ctx.closePath(); ctx.fill();
         break;
       }
+      case 'line': {
+        ctx.strokeStyle = a.color; ctx.lineWidth = a.w;
+        ctx.beginPath(); ctx.moveTo(a.a[0], a.a[1]); ctx.lineTo(a.b[0], a.b[1]); ctx.stroke();
+        break;
+      }
       case 'rect': {
         const b = normBox(a.a, a.b);
         ctx.strokeStyle = a.color; ctx.lineWidth = a.w;
@@ -431,7 +438,8 @@
         for (let i = 1; i < a.pts.length; i++) if (segDist(p, a.pts[i - 1], a.pts[i]) <= r) return true;
         return false;
       }
-      case 'arrow': return segDist(p, a.a, a.b) <= tol + a.w / 2;
+      case 'arrow':
+      case 'line': return segDist(p, a.a, a.b) <= tol + a.w / 2;
       case 'rect':
       case 'redact':
       case 'cover': {
@@ -473,7 +481,8 @@
     switch (a.type) {
       case 'pen':
       case 'hl': a.pts.forEach((q) => add(q, a.w / 2)); break;
-      case 'arrow': add(a.a, a.w); add(a.b, a.w); break;
+      case 'arrow':
+      case 'line': add(a.a, a.w); add(a.b, a.w); break;
       case 'rect':
       case 'ellipse':
       case 'redact':
@@ -939,6 +948,7 @@
       if (!this.ptrs.has(e.pointerId)) return;
       const p = this.local(e);
       this.ptrs.set(e.pointerId, p);
+      this.shift = e.shiftKey;
       if (this.mode === 'pinch' && this.ptrs.size >= 2) this.updatePinch();
       else if (this.mode === 'pan') {
         this.tx += p.x - this.last.x;
@@ -1019,6 +1029,7 @@
     switch (state.tool) {
       case 'pen': pane.draft = { type: 'pen', pts: [ip], color: c, w: sz.line * k }; break;
       case 'hl': pane.draft = { type: 'hl', pts: [ip], color: c, w: sz.line * 3.5 * k }; break;
+      case 'line':
       case 'arrow':
       case 'rect':
       case 'ellipse': pane.draft = { type: state.tool, a: ip, b: ip, color: c, w: sz.line * k }; break;
@@ -1062,8 +1073,34 @@
       const l = d.pts[d.pts.length - 1];
       if (Math.hypot(ip[0] - l[0], ip[1] - l[1]) * pane.s < 1.5) return;
       d.pts.push(ip);
-    } else d.b = ip;
+    } else d.b = constrain(d, ip, pane.shift);
     pane.request();
+  }
+
+  // Snapping for shapes and lines. Shift forces it; otherwise it snaps when close.
+  function constrain(d, ip, shift) {
+    const dx = ip[0] - d.a[0], dy = ip[1] - d.a[1];
+    if (d.type === 'rect' || d.type === 'ellipse') {
+      const ax = Math.abs(dx), ay = Math.abs(dy);
+      if (!ax || !ay) return ip;
+      const ratio = ax / ay;
+      if (shift || (ratio > 0.88 && ratio < 1.12)) {
+        const side = shift ? Math.max(ax, ay) : (ax + ay) / 2;
+        return [d.a[0] + Math.sign(dx) * side, d.a[1] + Math.sign(dy) * side];
+      }
+      return ip;
+    }
+    if (d.type === 'line' || d.type === 'arrow') {
+      const len = Math.hypot(dx, dy);
+      if (!len) return ip;
+      const ang = Math.atan2(dy, dx);
+      const step = shift ? Math.PI / 12 : Math.PI / 4;
+      const snapped = Math.round(ang / step) * step;
+      if (shift || Math.abs(ang - snapped) < (4 * Math.PI) / 180) {
+        return [d.a[0] + Math.cos(snapped) * len, d.a[1] + Math.sin(snapped) * len];
+      }
+    }
+    return ip;
   }
 
   function finishTool(pane) {

@@ -42,7 +42,8 @@ Upload the whole `snap-to-screen` folder to Netlify (drag and drop it onto **Sit
 | Move / zoom | Drag to move. Pinch with two fingers to zoom (this works with any tool selected). Tap a cover to reveal or re-hide it. |
 | Select | Tap any mark to select it. Drag it to move it, drag a corner handle to resize it, drag the round handle on the stalk to rotate it (it snaps to 15° steps, and the angle is shown while you turn it), or tap a colour to recolour it. **[** and **]** rotate the selection by 15°. The bar above it offers **Edit text**, **Duplicate**, **To front**, **Delete** and **Done**. Double-tap text to edit it. |
 | Pen / highlighter | Draw freehand. |
-| Arrow, box, circle | Drag from one corner to the other. |
+| Line, arrow | Drag from start to end. Snaps to exactly level, upright or 45° when you're close. Hold Shift for 15° steps. |
+| Box, circle | Drag from one corner to the other. Snaps to a perfect square or circle when it's nearly one. Hold Shift to force it. |
 | Text | Tap where the text should go. Choose a font (Clean, Handwriting, Serif, Typewriter), bold, italic, a background, size and colour, then press Enter. Tap existing text with this tool to edit it. Your last style is remembered. |
 | Stamps | Tap the stamp button to choose: tick, cross, question mark, star, numbered steps (1, 2, 3… counting up automatically), WWW or EBI. Then tap (or drag) to place. |
 | Redact | Drag a solid black box over a name. It stays visible even when annotations are hidden. |
@@ -64,7 +65,7 @@ Upload the whole `snap-to-screen` folder to Netlify (drag and drop it onto **Sit
 - **Save** offers this snap with or without annotations, both compared snaps as one image, or all snaps as a zip. Files go to Downloads. Type a lesson label (e.g. `9B Maths`) to have it added to the file names.
 - **End lesson** lets you save everything first, then deletes all snaps from the cloud.
 
-Keyboard: ← → previous/next · F full screen · H hide annotations · R rotate · G grid · 0 fit · + − zoom · Ctrl+Z / Ctrl+Y undo/redo · Ctrl+D duplicate selection · Delete removes the selection · Esc deselects / turns off spotlight / cancels crop · V move · S select · P pen · I highlighter · A arrow · B box · C circle · T text · M stamps · K hide & reveal · E eraser · O spotlight · L laser.
+Keyboard: ← → previous/next · F full screen · H hide annotations · R rotate · G grid · 0 fit · + − zoom · Ctrl+Z / Ctrl+Y undo/redo · Ctrl+D duplicate selection · Delete removes the selection · Esc deselects / turns off spotlight / cancels crop · V move · S select · P pen · I highlighter · N line · A arrow · B box · C circle · T text · M stamps · K hide & reveal · E eraser · O spotlight · L laser.
 
 Saved images include crops, rotation and any covers that are still hidden. They leave out the grid, spotlight and laser.
 
@@ -85,7 +86,7 @@ Each photo is about 300–450 KB. Photos are stored as encoded text in the datab
   then sign out on the phone and enter the new one. On the board, clear the site data or use the gate when it reappears.
 
 ## Updating the site (GitHub Pages)
-GitHub Pages lets browsers keep files for about 10 minutes. The pages load their scripts as `board.js?v=3` and so on. Whenever you upload changed files, raise that number in `board.html` and `phone.html` (currently `?v=5`) so browsers fetch the new versions together. After uploading, wait for the Pages build to finish (repo → **Actions** shows a green tick), then press **Ctrl+F5** on the board.
+GitHub Pages lets browsers keep files for about 10 minutes. The pages load their scripts as `board.js?v=3` and so on. Whenever you upload changed files, raise that number in `board.html` and `phone.html` (currently `?v=6`) so browsers fetch the new versions together. After uploading, wait for the Pages build to finish (repo → **Actions** shows a green tick), then press **Ctrl+F5** on the board.
 
 ## Troubleshooting
 | Symptom | Fix |

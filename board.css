@@ -183,9 +183,9 @@ svg.i { width: 24px; height: 24px; flex: none; }
   .tb .lbl { display: none; }
   .app-name, .room { display: none; }
 }
-/* Toolbar fits the screen height: 14 rows of buttons share what's left after
-   the top bar and spacing, between 34px and 56px each. */
-#toolbar { --btn: clamp(34px, calc((100vh - 220px) / 14), 56px); }
+/* Toolbar fits the screen height: 15 rows of buttons share what's left after
+   the top bar and spacing, between 32px and 56px each. */
+#toolbar { --btn: clamp(32px, calc((100vh - 226px) / 15), 56px); }
 #toolbar .swatch span { width: calc(var(--btn) * 0.56); height: calc(var(--btn) * 0.56); }
 #toolbar .stamp-ico { width: calc(var(--btn) * 0.54); height: calc(var(--btn) * 0.54); }
 /* Safety net on very small screens: undo/redo/hide/clear stay visible at the bottom. */
