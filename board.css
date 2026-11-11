@@ -48,7 +48,7 @@ svg.i { width: 24px; height: 24px; flex: none; }
 
 /* ---------- Toolbar ---------- */
 #toolbar { grid-area: tools; background: var(--panel); border-right: 1px solid var(--line); padding: 8px; display: flex; flex-direction: column; gap: 10px; overflow-y: auto; }
-.grp { display: grid; grid-template-columns: repeat(2, var(--btn)); gap: 6px; padding-bottom: 10px; border-bottom: 1px solid var(--line); }
+.grp { display: grid; grid-template-columns: repeat(2, var(--btn)); gap: 6px; padding-bottom: 10px; border-bottom: 1px solid var(--line); flex: none; }
 .grp:last-child { border-bottom: 0; }
 .tool { width: var(--btn); height: var(--btn); border-radius: 12px; border: 1px solid transparent; background: var(--panel-2); display: grid; place-items: center; }
 .tool:hover { border-color: #3d5068; }
@@ -183,10 +183,10 @@ svg.i { width: 24px; height: 24px; flex: none; }
   .tb .lbl { display: none; }
   .app-name, .room { display: none; }
 }
-@media (max-height: 900px) {
-  :root { --btn: 46px; }
-}
-@media (max-height: 760px) {
-  :root { --btn: 40px; }
-  .grp { gap: 4px; padding-bottom: 6px; }
-}
+/* Toolbar fits the screen height: 14 rows of buttons share what's left after
+   the top bar and spacing, between 34px and 56px each. */
+#toolbar { --btn: clamp(34px, calc((100vh - 220px) / 14), 56px); }
+#toolbar .swatch span { width: calc(var(--btn) * 0.56); height: calc(var(--btn) * 0.56); }
+#toolbar .stamp-ico { width: calc(var(--btn) * 0.54); height: calc(var(--btn) * 0.54); }
+/* Safety net on very small screens: undo/redo/hide/clear stay visible at the bottom. */
+#toolbar .grp.actions { position: sticky; bottom: -8px; margin-top: auto; background: var(--panel); padding: 8px 0; border-top: 1px solid var(--line); }
