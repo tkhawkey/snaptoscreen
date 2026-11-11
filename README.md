@@ -84,6 +84,9 @@ Each photo is about 300–450 KB. Photos are stored as encoded text in the datab
   `update public.snap_rooms set code_hash = public.snap_hash('new words here');`
   then sign out on the phone and enter the new one. On the board, clear the site data or use the gate when it reappears.
 
+## Updating the site (GitHub Pages)
+GitHub Pages lets browsers keep files for about 10 minutes. The pages load their scripts as `board.js?v=3` and so on. Whenever you upload changed files, raise that number in `board.html` and `phone.html` (e.g. to `?v=4`) so browsers fetch the new versions together. After uploading, wait for the Pages build to finish (repo → **Actions** shows a green tick), then press **Ctrl+F5** on the board.
+
 ## Troubleshooting
 | Symptom | Fix |
 |---|---|
