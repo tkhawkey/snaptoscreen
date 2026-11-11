@@ -148,6 +148,20 @@
     return Math.hypot(p[0] - (a[0] + t * dx), p[1] - (a[1] + t * dy));
   }
   const normBox = (a, b) => ({ x: Math.min(a[0], b[0]), y: Math.min(a[1], b[1]), w: Math.abs(a[0] - b[0]), h: Math.abs(a[1] - b[1]) });
+
+  // Box-shaped marks keep their corners un-rotated and store an angle (radians)
+  // around their own centre.
+  const BOXY = ['rect', 'ellipse', 'redact', 'cover'];
+  function rotAround(q, c, th) {
+    const cs = Math.cos(th), sn = Math.sin(th), dx = q[0] - c[0], dy = q[1] - c[1];
+    return [c[0] + dx * cs - dy * sn, c[1] + dx * sn + dy * cs];
+  }
+  // Point → the box's un-rotated frame (for hit testing).
+  function boxLocal(a, p) {
+    if (!a.ang) return p;
+    const b = normBox(a.a, a.b);
+    return rotAround(p, [b.x + b.w / 2, b.y + b.h / 2], -a.ang);
+  }
   function inEllipse(a, b, p) {
     const r = normBox(a, b);
     const rx = Math.max(r.w / 2, 1), ry = Math.max(r.h / 2, 1);
@@ -280,8 +294,17 @@
 
   function drawAnn(ctx, a, view) {
     ctx.save();
+    // Always start from known text settings, whatever was drawn before.
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'alphabetic';
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
+    if (a.ang && BOXY.includes(a.type)) { // rotated box / circle / redaction / cover
+      const b = normBox(a.a, a.b);
+      ctx.translate(b.x + b.w / 2, b.y + b.h / 2);
+      ctx.rotate(a.ang);
+      ctx.translate(-(b.x + b.w / 2), -(b.y + b.h / 2));
+    }
     switch (a.type) {
       case 'pen':
       case 'hl': {
@@ -399,6 +422,7 @@
   //  Hit testing, bounding boxes, transforms
   // ---------------------------------------------------------------------
   function hitAnn(a, p, tol) {
+    if (BOXY.includes(a.type)) p = boxLocal(a, p);
     switch (a.type) {
       case 'pen':
       case 'hl': {
@@ -451,9 +475,15 @@
       case 'hl': a.pts.forEach((q) => add(q, a.w / 2)); break;
       case 'arrow': add(a.a, a.w); add(a.b, a.w); break;
       case 'rect':
-      case 'ellipse': add(a.a, a.w / 2); add(a.b, a.w / 2); break;
+      case 'ellipse':
       case 'redact':
-      case 'cover': add(a.a); add(a.b); break;
+      case 'cover': {
+        const b = normBox(a.a, a.b);
+        const c = [b.x + b.w / 2, b.y + b.h / 2];
+        const pad = a.w ? a.w / 2 : 0;
+        [[b.x, b.y], [b.x + b.w, b.y], [b.x + b.w, b.y + b.h], [b.x, b.y + b.h]].forEach((q) => add(rotAround(q, c, a.ang || 0), pad));
+        break;
+      }
       case 'text':
       case 'stamp': {
         const b = localBox(a);
@@ -472,7 +502,24 @@
     if (a.p) { b.p = f(a.p); if (a.size) b.size = a.size * k; }
     return b;
   }
-  const uniformScale = (a) => ['pen', 'hl', 'text', 'stamp'].includes(a.type);
+  const uniformScale = (a) => ['pen', 'hl', 'text', 'stamp'].includes(a.type) || !!a.ang;
+
+  // Rotate a mark by th radians (clockwise on screen) around centre c.
+  function rotateAnn(a, c, th) {
+    if (BOXY.includes(a.type)) {
+      const b = normBox(a.a, a.b);
+      const nc = rotAround([b.x + b.w / 2, b.y + b.h / 2], c, th);
+      const dx = nc[0] - (b.x + b.w / 2), dy = nc[1] - (b.y + b.h / 2);
+      return { ...a, a: [a.a[0] + dx, a.a[1] + dy], b: [a.b[0] + dx, a.b[1] + dy], ang: (a.ang || 0) + th };
+    }
+    const r = mapAnn(a, (q) => rotAround(q, c, th));
+    if (a.type === 'text' || a.type === 'stamp') r.rot = (a.rot || 0) - (th * 180) / Math.PI;
+    return r;
+  }
+  function annCentre(a) {
+    const b = annBox(a);
+    return [(b.x0 + b.x1) / 2, (b.y0 + b.y1) / 2];
+  }
   const hasColour = (a) => a && (a.color !== undefined) && a.type !== 'redact' && a.type !== 'cover';
 
   // ---------------------------------------------------------------------
@@ -689,10 +736,12 @@
       const s = this.snap;
       if (!s) return;
       if (!s.img) {
+        ctx.save();
         ctx.fillStyle = '#93a2b4';
         ctx.font = `${20 * d}px ${UI_FONT}`;
         ctx.textAlign = 'center';
         ctx.fillText(s.failed ? 'Could not load this snap' : 'Loading…', this.canvas.width / 2, this.canvas.height / 2);
+        ctx.restore();
         return;
       }
       if (this.sel && !s.anns.includes(this.sel)) { this.sel = null; updateSelBar(); }
@@ -761,6 +810,39 @@
           ctx.fillStyle = '#ffffff';
           ctx.fillRect(p.x - 9, p.y - 9, 18, 18);
           ctx.strokeRect(p.x - 9, p.y - 9, 18, 18);
+        }
+        // Rotation handle: a circle on a stalk above the frame (below it if there's no room)
+        const hx = (x0 + x1) / 2;
+        const above = y0 - 44 > 14;
+        const hy = above ? y0 - 44 : y1 + 44;
+        this.rotHandle = { x: hx, y: hy };
+        ctx.beginPath();
+        ctx.moveTo(hx, above ? y0 : y1);
+        ctx.lineTo(hx, hy);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.arc(hx, hy, 15, 0, Math.PI * 2);
+        ctx.fillStyle = '#ffffff';
+        ctx.fill();
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.arc(hx, hy, 7, -Math.PI * 0.9, Math.PI * 0.55);
+        ctx.strokeStyle = '#1d4ed8';
+        ctx.lineWidth = 2.2;
+        ctx.stroke();
+        const ex = hx + 7 * Math.cos(Math.PI * 0.55), ey = hy + 7 * Math.sin(Math.PI * 0.55);
+        ctx.beginPath();
+        ctx.moveTo(ex - 5, ey - 1); ctx.lineTo(ex, ey); ctx.lineTo(ex + 1, ey - 5);
+        ctx.stroke();
+        if (this.drag && this.drag.kind === 'rotate') {
+          const deg = Math.round((this.drag.th * 180) / Math.PI);
+          ctx.font = `600 15px ${UI_FONT}`;
+          ctx.textAlign = 'left';
+          ctx.textBaseline = 'middle';
+          ctx.fillStyle = '#0b1119e6';
+          ctx.fillRect(hx + 22, hy - 13, 56, 26);
+          ctx.fillStyle = '#ffffff';
+          ctx.fillText(`${deg > 0 ? '+' : ''}${deg}°`, hx + 28, hy);
         }
         ctx.restore();
         if (this.idx === state.active) placeSelBar(this, { x0, y0, x1, y1 });
@@ -1050,6 +1132,11 @@
   function selectDown(pane, sp, ip) {
     const s = pane.snap;
     const now = performance.now();
+    if (pane.sel && pane.rotHandle && Math.hypot(sp.x - pane.rotHandle.x, sp.y - pane.rotHandle.y) < 30) {
+      const c = annCentre(pane.sel);
+      pane.drag = { kind: 'rotate', orig: pane.sel, before: s.anns, c, start: Math.atan2(ip[1] - c[1], ip[0] - c[0]), th: 0, moved: false };
+      return;
+    }
     if (pane.sel) {
       const { img, scr } = pane.selCorners();
       let best = -1, bd = 30;
@@ -1076,7 +1163,15 @@
     if (!d) return;
     const s = pane.snap;
     let nu;
-    if (d.kind === 'move') {
+    if (d.kind === 'rotate') {
+      let th = Math.atan2(ip[1] - d.c[1], ip[0] - d.c[0]) - d.start;
+      th = Math.atan2(Math.sin(th), Math.cos(th)); // keep within ±180°
+      const step = Math.PI / 12; // snap to 15° steps when close
+      const snapped = Math.round(th / step) * step;
+      if (Math.abs(th - snapped) < (4 * Math.PI) / 180) th = snapped;
+      d.th = th;
+      nu = rotateAnn(d.orig, d.c, th);
+    } else if (d.kind === 'move') {
       const dx = ip[0] - d.start[0], dy = ip[1] - d.start[1];
       if (!d.moved && Math.hypot(dx, dy) * pane.s < 3) return;
       nu = mapAnn(d.orig, (q) => [q[0] + dx, q[1] + dy]);
@@ -1159,9 +1254,11 @@
     if (bar.classList.contains('hidden')) return;
     const bw = bar.offsetWidth, bh = bar.offsetHeight;
     const ox = pane.el.offsetLeft, oy = pane.el.offsetTop;
+    // Bar goes below the frame (the rotation handle sits above it); above if no room.
     let x = ox + (box.x0 + box.x1) / 2 - bw / 2;
-    let y = oy + box.y0 - bh - 14;
-    if (y < oy + 6) y = oy + box.y1 + 14;
+    const handleBelow = pane.rotHandle && pane.rotHandle.y > box.y1;
+    let y = oy + box.y1 + (handleBelow ? 70 : 14);
+    if (y + bh > oy + pane.ch - 6) y = oy + box.y0 - bh - (handleBelow ? 14 : 70);
     x = clamp(x, ox + 6, ox + pane.cw - bw - 6);
     y = clamp(y, oy + 6, oy + pane.ch - bh - 6);
     bar.style.left = x + 'px';
@@ -2294,6 +2391,12 @@
     else if (k === '0') activePane().fit();
     else if (k === '+' || k === '=') $('#zoomIn').click();
     else if (k === '-') $('#zoomOut').click();
+    else if ((k === '[' || k === ']') && activePane().sel) {
+      const p = activePane(), s = p.snap, a = p.sel;
+      const nu = rotateAnn(a, annCentre(a), ((k === ']' ? 15 : -15) * Math.PI) / 180);
+      replaceAnns(s, s.anns.map((x) => (x === a ? nu : x)));
+      p.sel = nu;
+    }
     else if (k === 'delete' || k === 'backspace') { if (activePane().sel) selAction('del'); else if (k === 'delete') deleteCurrent(); }
     else {
       const t = TOOLS.find((t) => t.key === k);

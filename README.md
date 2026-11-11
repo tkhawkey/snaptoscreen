@@ -40,7 +40,7 @@ Upload the whole `snap-to-screen` folder to Netlify (drag and drop it onto **Sit
 | Tool | Use |
 |---|---|
 | Move / zoom | Drag to move. Pinch with two fingers to zoom (this works with any tool selected). Tap a cover to reveal or re-hide it. |
-| Select | Tap any mark to select it. Drag it to move it, drag a corner handle to resize it, or tap a colour to recolour it. The bar above it offers **Edit text**, **Duplicate**, **To front**, **Delete** and **Done**. Double-tap text to edit it. |
+| Select | Tap any mark to select it. Drag it to move it, drag a corner handle to resize it, drag the round handle on the stalk to rotate it (it snaps to 15° steps, and the angle is shown while you turn it), or tap a colour to recolour it. **[** and **]** rotate the selection by 15°. The bar above it offers **Edit text**, **Duplicate**, **To front**, **Delete** and **Done**. Double-tap text to edit it. |
 | Pen / highlighter | Draw freehand. |
 | Arrow, box, circle | Drag from one corner to the other. |
 | Text | Tap where the text should go. Choose a font (Clean, Handwriting, Serif, Typewriter), bold, italic, a background, size and colour, then press Enter. Tap existing text with this tool to edit it. Your last style is remembered. |
@@ -85,7 +85,7 @@ Each photo is about 300–450 KB. Photos are stored as encoded text in the datab
   then sign out on the phone and enter the new one. On the board, clear the site data or use the gate when it reappears.
 
 ## Updating the site (GitHub Pages)
-GitHub Pages lets browsers keep files for about 10 minutes. The pages load their scripts as `board.js?v=3` and so on. Whenever you upload changed files, raise that number in `board.html` and `phone.html` (e.g. to `?v=4`) so browsers fetch the new versions together. After uploading, wait for the Pages build to finish (repo → **Actions** shows a green tick), then press **Ctrl+F5** on the board.
+GitHub Pages lets browsers keep files for about 10 minutes. The pages load their scripts as `board.js?v=3` and so on. Whenever you upload changed files, raise that number in `board.html` and `phone.html` (currently `?v=5`) so browsers fetch the new versions together. After uploading, wait for the Pages build to finish (repo → **Actions** shows a green tick), then press **Ctrl+F5** on the board.
 
 ## Troubleshooting
 | Symptom | Fix |
