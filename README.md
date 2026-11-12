@@ -66,7 +66,9 @@ Upload the whole `snap-to-screen` folder to Netlify (drag and drop it onto **Sit
 - **Save** offers this snap with or without annotations, both compared snaps as one image, or all snaps as a zip. Files go to Downloads. Type a lesson label (e.g. `9B Maths`) to have it added to the file names.
 - **End lesson** lets you save everything first, then deletes all snaps from the cloud.
 
-Keyboard: ← → previous/next · F full screen · H hide annotations · R rotate · G grid · 0 fit · + − zoom · Ctrl+Z / Ctrl+Y undo/redo · Ctrl+D duplicate selection · Delete removes the selection · Esc deselects / turns off spotlight / cancels crop · V move · S select · P pen · I highlighter · N line · A arrow · B box · C circle · T text · M stamps · K hide & reveal · E eraser · O spotlight · L laser.
+Keyboard: ← → previous/next · F full screen · H hide annotations · R rotate · G grid · 0 fit · + − zoom · Ctrl+Z / Ctrl+Y undo/redo · Ctrl+D duplicate selection · Delete removes the selection · Esc deselects / turns off spotlight / cancels crop · M move · S select · P pen · I highlighter · L line · A arrow · B box · C circle · T text · V stamps · K hide & reveal · E eraser · O spotlight · Q laser.
+
+With a mouse or pen, the pen, highlighter and eraser show a ring the size of the brush, and the laser shows its red dot before you press.
 
 Saved images include crops, rotation and any covers that are still hidden. They leave out the grid, spotlight and laser.
 
@@ -94,7 +96,7 @@ Each photo is about 200–300 KB (1400 px, set in `config.js`). Photos are store
   then sign out on the phone and enter the new one. On the board, clear the site data or use the gate when it reappears.
 
 ## Updating the site (GitHub Pages)
-GitHub Pages lets browsers keep files for about 10 minutes. The pages load their scripts as `board.js?v=3` and so on. Whenever you upload changed files, raise that number in `board.html` and `phone.html` (currently `?v=8`) so browsers fetch the new versions together. After uploading, wait for the Pages build to finish (repo → **Actions** shows a green tick), then press **Ctrl+F5** on the board.
+GitHub Pages lets browsers keep files for about 10 minutes. The pages load their scripts as `board.js?v=3` and so on. Whenever you upload changed files, raise that number in `board.html` and `phone.html` (currently `?v=9`) so browsers fetch the new versions together. After uploading, wait for the Pages build to finish (repo → **Actions** shows a green tick), then press **Ctrl+F5** on the board.
 
 ## Troubleshooting
 | Symptom | Fix |

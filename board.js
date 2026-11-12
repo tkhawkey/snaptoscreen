@@ -66,21 +66,21 @@
   //  Tools, colours, sizes, stamps
   // ---------------------------------------------------------------------
   const TOOLS = [
-    { id: 'pan', name: 'Move / zoom (V). Tap a cover to reveal it.', key: 'v' },
+    { id: 'pan', name: 'Move / zoom (M). Tap a cover to reveal it.', key: 'm' },
     { id: 'select', name: 'Select (S): tap a mark to move, resize, recolour or delete it', key: 's' },
     { id: 'pen', name: 'Pen (P)', key: 'p' },
     { id: 'hl', name: 'Highlighter (I)', key: 'i' },
-    { id: 'line', name: 'Line (N): snaps level/upright/45°; hold Shift for 15° steps', key: 'n' },
+    { id: 'line', name: 'Line (L): snaps level/upright/45°; hold Shift for 15° steps', key: 'l' },
     { id: 'arrow', name: 'Arrow (A): snaps level/upright/45°; hold Shift for 15° steps', key: 'a' },
     { id: 'rect', name: 'Box (B): snaps to a square when close; hold Shift to force', key: 'b' },
     { id: 'ellipse', name: 'Circle (C): snaps to a perfect circle when close; hold Shift to force', key: 'c' },
     { id: 'text', name: 'Text (T): tap to add, tap existing text to edit', key: 't' },
-    { id: 'stamp', name: 'Stamps (M): tap again to choose a stamp', key: 'm' },
+    { id: 'stamp', name: 'Stamps (V): tap again to choose a stamp', key: 'v' },
     { id: 'redact', name: 'Redact: cover a name' },
     { id: 'cover', name: 'Hide & reveal (K): drag to cover, tap to reveal', key: 'k' },
     { id: 'eraser', name: 'Eraser (E): tap or drag over a mark', key: 'e' },
     { id: 'spot', name: 'Spotlight (O): drag a circle to focus on', key: 'o' },
-    { id: 'laser', name: 'Laser pointer (L): trail fades away', key: 'l' },
+    { id: 'laser', name: 'Laser pointer (Q): trail fades away', key: 'q' },
   ];
   const COLOURS = ['#e11d48', '#2563eb', '#16a34a', '#facc15', '#111827', '#ffffff'];
   // Line width in on-screen pixels. Presets + a slider (1–40).
@@ -623,11 +623,28 @@
       this.cropping = null;  // { r, drag } while cropping
       this.anim = new Map(); // cover reveal animations, keyed by annotation id
       this.raf = 0;
+      // Transparent layer on top for fast-changing things (laser trail, hover cursor),
+      // so they don't force the photo and all annotations to be redrawn.
+      this.ov = document.createElement('canvas');
+      this.ov.className = 'ov-layer';
+      this.canvas.after(this.ov);
+      this.octx = this.ov.getContext('2d');
+      this.oraf = 0;
+      this.hover = null;     // mouse/pen position for the cursor ring (not touch)
 
       new ResizeObserver(() => this.resize()).observe(el);
       const c = this.canvas;
       c.addEventListener('pointerdown', (e) => this.onDown(e));
-      c.addEventListener('pointermove', (e) => this.onMove(e));
+      c.addEventListener('pointermove', (e) => {
+        this.hover = e.pointerType === 'touch' ? null : this.local(e);
+        if (state.tool === 'laser' && this.laserDown && e.getPredictedEvents) {
+          const pr = e.getPredictedEvents();
+          this.pred = pr.length ? this.local(pr[pr.length - 1]) : null;
+        }
+        this.requestOverlay();
+        this.onMove(e);
+      });
+      c.addEventListener('pointerleave', () => { this.hover = null; this.requestOverlay(); });
       c.addEventListener('pointerup', (e) => this.onUp(e, false));
       c.addEventListener('pointercancel', (e) => this.onUp(e, true));
       c.addEventListener('lostpointercapture', (e) => { if (this.ptrs.has(e.pointerId)) this.onUp(e, true); });
@@ -645,9 +662,71 @@
       if (!r.width || !r.height) return;
       this.cw = r.width; this.ch = r.height;
       const d = window.devicePixelRatio || 1;
-      this.canvas.width = Math.round(r.width * d);
-      this.canvas.height = Math.round(r.height * d);
+      this.canvas.width = this.ov.width = Math.round(r.width * d);
+      this.canvas.height = this.ov.height = Math.round(r.height * d);
       if (this.fitted) this.fit(); else this.request();
+      this.requestOverlay();
+    }
+
+    requestOverlay() {
+      if (this.oraf) return;
+      this.oraf = requestAnimationFrame(() => { this.oraf = 0; this.drawOverlay(); });
+    }
+
+    // Laser trail + hover cursor, on the overlay layer only.
+    drawOverlay() {
+      const ctx = this.octx;
+      const d = window.devicePixelRatio || 1;
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.clearRect(0, 0, this.ov.width, this.ov.height);
+      ctx.setTransform(d, 0, 0, d, 0, 0);
+      const now = performance.now();
+      const LIFE = 900;
+
+      if (this.laser.length) {
+        this.laser = this.laser.filter((p) => now - p.t < LIFE);
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        // Two cheap passes (soft glow, then bright core) instead of a blur filter.
+        for (const [w, rgb, k] of [[16, '255,40,60', 0.25], [6, '255,70,85', 1]]) {
+          ctx.lineWidth = w;
+          for (let i = 1; i < this.laser.length; i++) {
+            const p = this.laser[i], q = this.laser[i - 1];
+            if (p.brk) continue;
+            ctx.strokeStyle = `rgba(${rgb},${(Math.max(0, 1 - (now - p.t) / LIFE) * k).toFixed(3)})`;
+            ctx.beginPath(); ctx.moveTo(q.x, q.y); ctx.lineTo(p.x, p.y); ctx.stroke();
+          }
+        }
+      }
+
+      // Laser "dot": follows the pointer, and runs slightly ahead using predicted events.
+      const head = this.laserDown ? (this.pred || this.laser[this.laser.length - 1]) : (state.tool === 'laser' ? this.hover : null);
+      if (head && !this.cropping) {
+        ctx.fillStyle = 'rgba(255,40,60,0.28)';
+        ctx.beginPath(); ctx.arc(head.x, head.y, 15, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = '#ff3b4f';
+        ctx.beginPath(); ctx.arc(head.x, head.y, 7, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = '#ffe4e6';
+        ctx.beginPath(); ctx.arc(head.x, head.y, 2.5, 0, Math.PI * 2); ctx.fill();
+      }
+
+      // Brush-size ring for pen / highlighter / eraser (mouse or pen hover only).
+      const h = this.hover;
+      if (h && !this.cropping && ['pen', 'hl', 'eraser'].includes(state.tool) && this.mode !== 'pinch') {
+        const r = state.tool === 'eraser' ? 14 : Math.max(1.5, (state.lineW * (state.tool === 'hl' ? 3.5 : 1)) / 2);
+        ctx.lineWidth = 3;
+        ctx.strokeStyle = 'rgba(0,0,0,0.55)';
+        ctx.beginPath(); ctx.arc(h.x, h.y, r, 0, Math.PI * 2); ctx.stroke();
+        ctx.lineWidth = 1.3;
+        ctx.strokeStyle = 'rgba(255,255,255,0.95)';
+        ctx.beginPath(); ctx.arc(h.x, h.y, r, 0, Math.PI * 2); ctx.stroke();
+        if (r > 5) { // centre point so you can see exactly where it lands
+          ctx.fillStyle = state.tool === 'eraser' ? '#ffffff' : state.colour;
+          ctx.beginPath(); ctx.arc(h.x, h.y, 1.8, 0, Math.PI * 2); ctx.fill();
+        }
+      }
+
+      if (this.laser.length) this.requestOverlay(); // keep fading
     }
 
     setSnap(s) {
@@ -657,6 +736,7 @@
       this.sel = null;
       this.spot = null;
       this.laser = [];
+      this.requestOverlay();
       this.fit();
       this.updateTag();
       updateSpotChip();
@@ -857,30 +937,6 @@
         if (this.idx === state.active) placeSelBar(this, { x0, y0, x1, y1 });
       }
 
-      // Laser trail
-      if (this.laser.length) {
-        this.laser = this.laser.filter((p) => now - p.t < 900);
-        ctx.save();
-        ctx.setTransform(d, 0, 0, d, 0, 0);
-        ctx.lineCap = 'round';
-        ctx.shadowColor = 'rgba(255,40,60,0.9)';
-        ctx.shadowBlur = 14;
-        for (let i = 1; i < this.laser.length; i++) {
-          const p = this.laser[i], q = this.laser[i - 1];
-          if (p.brk) continue;
-          ctx.strokeStyle = `rgba(255,50,70,${Math.max(0, 1 - (now - p.t) / 900)})`;
-          ctx.lineWidth = 7;
-          ctx.beginPath(); ctx.moveTo(q.x, q.y); ctx.lineTo(p.x, p.y); ctx.stroke();
-        }
-        const last = this.laser[this.laser.length - 1];
-        if (this.laserDown && last) {
-          ctx.fillStyle = '#ff3b4f';
-          ctx.beginPath(); ctx.arc(last.x, last.y, 9, 0, Math.PI * 2); ctx.fill();
-        }
-        ctx.restore();
-        if (this.laser.length) this.animating = true;
-      }
-
       if (this.animating) this.request();
     }
 
@@ -1008,7 +1064,9 @@
       this.drag = null;
       this.draft = null;
       this.laserDown = false;
+      this.pred = null;
       this.request();
+      this.requestOverlay();
     }
   }
 
@@ -1052,7 +1110,8 @@
       case 'laser':
         pane.laserDown = true;
         pane.laser.push({ x: sp.x, y: sp.y, t: performance.now(), brk: true });
-        break;
+        pane.requestOverlay();
+        return; // nothing on the photo layer changes
     }
     pane.request();
   }
@@ -1063,7 +1122,7 @@
     switch (state.tool) {
       case 'select': selectMove(pane, ip); return;
       case 'spot': spotMove(pane, sp, ip); return;
-      case 'laser': pane.laser.push({ x: sp.x, y: sp.y, t: performance.now() }); pane.request(); return;
+      case 'laser': pane.laser.push({ x: sp.x, y: sp.y, t: performance.now() }); pane.requestOverlay(); return;
     }
     const d = pane.draft;
     if (!d) return;
@@ -1118,7 +1177,7 @@
     switch (state.tool) {
       case 'select': selectUp(pane); return;
       case 'spot': spotUp(pane); return;
-      case 'laser': pane.laserDown = false; pane.request(); return;
+      case 'laser': pane.laserDown = false; pane.pred = null; pane.requestOverlay(); return;
     }
     const d = pane.draft;
     pane.draft = null;
@@ -1658,9 +1717,12 @@
 
   function setTool(id) {
     state.tool = id;
-    const cursor = { pan: 'grab', select: 'default', text: 'text', laser: 'none' }[id] || 'crosshair';
+    // Pen, highlighter, eraser and laser draw their own cursor on the overlay
+    // (a ring the size of the brush, or the red laser dot).
+    const cursor = { pan: 'grab', select: 'default', text: 'text', laser: 'none', pen: 'none', hl: 'none', eraser: 'none' }[id] || 'crosshair';
     for (const p of state.panes) {
       p.canvas.style.cursor = cursor;
+      p.requestOverlay();
       if (id !== 'select' && p.sel) { p.sel = null; p.request(); }
     }
     updateSelBar();
@@ -1680,6 +1742,7 @@
       $('.size-num', more).textContent = custom ? state.lineW : '';
     }
     drawSizePreview(); // colour / tool changes update the preview too
+    state.panes.forEach((p) => p.requestOverlay()); // and the cursor ring
   }
 
   function updateActionButtons() {
