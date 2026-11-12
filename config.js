@@ -1,12 +1,12 @@
 // =====================================================================
 //  Snap to Screen: settings
-//  Paste in the library project's URL and public key.
+//  The Supabase project's URL and public key.
 //  (Supabase dashboard → Project Settings → API. Use the "anon public"
 //  key or the "publishable" key – NEVER the service_role / secret key.)
 // =====================================================================
 window.SNAP_CONFIG = {
-  supabaseUrl: 'https://qjysbzyzlqdnjnizirxu.supabase.co',
-  supabaseAnonKey: 'sb_publishable_qvcH21IHxpi_QYHY6GxnwA_SGniJp_5',
+  supabaseUrl: 'https://pvdzkcrxhqderwqlhiwo.supabase.co',
+  supabaseAnonKey: 'sb_publishable_ojVGAgRBT0k9Vx8ylHF0Tg_x7WDmsdi',
 
   // Branding
   schoolShort: 'CIS',
