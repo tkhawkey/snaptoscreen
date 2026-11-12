@@ -83,11 +83,11 @@
     { id: 'laser', name: 'Laser pointer (L): trail fades away', key: 'l' },
   ];
   const COLOURS = ['#e11d48', '#2563eb', '#16a34a', '#facc15', '#111827', '#ffffff'];
-  const SIZES = {
-    s: { line: 4, stamp: 56, dot: 8 },
-    m: { line: 8, stamp: 90, dot: 14 },
-    l: { line: 16, stamp: 140, dot: 22 },
-  };
+  // Line width in on-screen pixels. Presets + a slider (1–40).
+  const SIZE_PRESETS = { s: 4, m: 8, l: 16 };
+  const SIZE_MIN = 1, SIZE_MAX = 40;
+  const SIZE_KEY = 'snap.board.lineW';
+  const sizeFor = (lw) => ({ line: lw, stamp: 40 + lw * 6 });
   const STAMPS = [
     { id: 'tick', name: 'Tick' },
     { id: 'cross', name: 'Cross' },
@@ -107,7 +107,7 @@
     snaps: [],
     tool: 'pen',
     colour: COLOURS[0],
-    size: 'm',
+    lineW: Math.min(SIZE_MAX, Math.max(SIZE_MIN, +store.get(SIZE_KEY, 8) || 8)),
     stamp: 'tick',
     textStyle: Object.assign({ font: 'sans', bold: true, italic: false, bg: false, sizeKey: 'M' }, store.get(STYLE_KEY, {})),
     autoShow: true,
@@ -1022,7 +1022,7 @@
   function startTool(pane, sp) {
     const s = pane.snap;
     const ip = pane.toImage(sp.x, sp.y);
-    const sz = SIZES[state.size];
+    const sz = sizeFor(state.lineW);
     const k = 1 / pane.s; // screen px → image px
     const c = state.colour;
     if (state.tool !== 'select' && pane.sel) { pane.sel = null; updateSelBar(); }
@@ -1580,17 +1580,80 @@
       cols.append(b);
     }
     const sizes = $('#sizes');
-    for (const k of Object.keys(SIZES)) {
+    for (const [k, lw] of Object.entries(SIZE_PRESETS)) {
       const b = document.createElement('button');
       b.className = 'tool size';
-      b.dataset.size = k;
+      b.dataset.size = lw;
       b.title = { s: 'Thin', m: 'Medium', l: 'Thick' }[k];
-      const dpx = SIZES[k].dot;
+      const dpx = { s: 8, m: 14, l: 22 }[k];
       b.innerHTML = `<span style="width:${dpx}px;height:${dpx}px"></span>`;
-      b.onclick = () => { state.size = k; updateToolbar(); };
+      b.onclick = () => setLineW(lw, true);
       sizes.append(b);
     }
+    const more = document.createElement('button');
+    more.className = 'tool size-custom';
+    more.id = 'sizeMore';
+    more.title = 'Any size: slider with live preview';
+    more.dataset.popAnchor = '';
+    more.innerHTML = `<svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 8h10M18 8h2M4 16h4M12 16h8"/><circle cx="16" cy="8" r="2"/><circle cx="10" cy="16" r="2"/></svg><b class="size-num"></b>`;
+    more.onclick = (e) => { togglePop($('#sizePop'), e.currentTarget, 'right'); drawSizePreview(); };
+    sizes.append(more);
+
+    const range = $('#sizeRange');
+    range.min = SIZE_MIN; range.max = SIZE_MAX; range.value = state.lineW;
+    range.addEventListener('input', () => setLineW(+range.value, false));
+    range.addEventListener('change', () => setLineW(+range.value, true));
     updateToolbar();
+  }
+
+  // Set the pen/shape width. `final` = the slider was released or a preset tapped:
+  // that's when it's remembered and applied to a selected mark (one undo step).
+  function setLineW(lw, final) {
+    state.lineW = clamp(Math.round(lw), SIZE_MIN, SIZE_MAX);
+    $('#sizeRange').value = state.lineW;
+    updateToolbar();
+    drawSizePreview();
+    if (!final) return;
+    store.set(SIZE_KEY, state.lineW);
+    const pane = activePane();
+    const s = pane && pane.snap, a = pane && pane.sel;
+    if (!s || !a) return;
+    let nu = null;
+    if (a.w !== undefined) nu = { ...a, w: (state.lineW * (a.type === 'hl' ? 3.5 : 1)) / pane.s };
+    else if (a.type === 'stamp') nu = { ...a, size: sizeFor(state.lineW).stamp / pane.s };
+    if (nu) {
+      replaceAnns(s, s.anns.map((x) => (x === a ? nu : x)));
+      pane.sel = nu;
+    }
+  }
+
+  function drawSizePreview() {
+    const c = $('#sizePreview');
+    if (!c || $('#sizePop').classList.contains('hidden')) return;
+    const d = window.devicePixelRatio || 1;
+    const W = c.clientWidth, H = c.clientHeight;
+    c.width = W * d; c.height = H * d;
+    const x = c.getContext('2d');
+    x.scale(d, d);
+    const light = contrastFor(state.colour) === '#ffffff';
+    x.fillStyle = light ? '#f4f1ea' : '#1f2937';
+    x.fillRect(0, 0, W, H);
+    const hl = state.tool === 'hl';
+    const w = state.lineW * (hl ? 3.5 : 1);
+    x.strokeStyle = state.colour;
+    x.lineCap = hl ? 'butt' : 'round';
+    x.lineJoin = 'round';
+    x.lineWidth = w;
+    x.globalAlpha = hl ? 0.4 : 1;
+    x.beginPath();
+    const mid = H / 2, amp = Math.max(4, H / 2 - w / 2 - 8);
+    for (let i = 0; i <= 60; i++) {
+      const px = 24 + (i / 60) * (W - 48);
+      const py = mid + Math.sin((i / 60) * Math.PI * 2) * amp * 0.6;
+      i ? x.lineTo(px, py) : x.moveTo(px, py);
+    }
+    x.stroke();
+    $('#sizeVal').textContent = `${state.lineW} px${hl ? ' (highlighter ×3.5)' : ''}`;
   }
 
   function setTool(id) {
@@ -1609,7 +1672,14 @@
     const si = $('#tools [data-tool="stamp"] img');
     if (si) si.src = stampImage(state.stamp, 28);
     $$('#colours .swatch').forEach((b) => b.classList.toggle('on', b.dataset.colour === state.colour));
-    $$('#sizes .tool').forEach((b) => b.classList.toggle('on', b.dataset.size === state.size));
+    $$('#sizes .tool.size').forEach((b) => b.classList.toggle('on', +b.dataset.size === state.lineW));
+    const more = $('#sizeMore');
+    if (more) {
+      const custom = !Object.values(SIZE_PRESETS).includes(state.lineW);
+      more.classList.toggle('on', custom);
+      $('.size-num', more).textContent = custom ? state.lineW : '';
+    }
+    drawSizePreview(); // colour / tool changes update the preview too
   }
 
   function updateActionButtons() {
@@ -1737,14 +1807,66 @@
   // ---------------------------------------------------------------------
   //  Loading images
   // ---------------------------------------------------------------------
+  // Photos already downloaded are kept in this browser (IndexedDB) so a refresh
+  // doesn't download them again. Same 12-hour limit as the cloud; cleared by
+  // End lesson, Switch teacher, or when the snap is deleted.
+  const photoCache = (() => {
+    const DB = 'snap-photos', STORE = 'photos', MAX_AGE = 12 * 3600 * 1000;
+    let dbp = null;
+    const open = () => (dbp = dbp || new Promise((res, rej) => {
+      try {
+        const r = indexedDB.open(DB, 1);
+        r.onupgradeneeded = () => r.result.createObjectStore(STORE);
+        r.onsuccess = () => res(r.result);
+        r.onerror = () => rej(r.error);
+      } catch (e) { rej(e); }
+    }));
+    const run = async (mode, fn) => {
+      const db = await open();
+      return new Promise((res, rej) => {
+        const t = db.transaction(STORE, mode);
+        const req = fn(t.objectStore(STORE));
+        t.oncomplete = () => res(req && req.result);
+        t.onerror = () => rej(t.error);
+      });
+    };
+    return {
+      async get(id) {
+        try { const v = await run('readonly', (st) => st.get(id)); return v && Date.now() - v.t < MAX_AGE ? v.blob : null; } catch { return null; }
+      },
+      async put(id, blob) { try { await run('readwrite', (st) => st.put({ blob, t: Date.now() }, id)); } catch {} },
+      async del(id) { try { await run('readwrite', (st) => st.delete(id)); } catch {} },
+      async clear() { try { await run('readwrite', (st) => st.clear()); } catch {} },
+      async prune(keepIds) { // drop anything not in the current list or older than 12 h
+        try {
+          await run('readwrite', (st) => {
+            const cur = st.openCursor();
+            cur.onsuccess = () => {
+              const c = cur.result;
+              if (!c) return;
+              if (!keepIds.has(c.key) || Date.now() - c.value.t > MAX_AGE) c.delete();
+              c.continue();
+            };
+            return null;
+          });
+        } catch {}
+      },
+    };
+  })();
+
   async function loadImage(s) {
     if (s.img || s.loading || s.local) return;
     s.loading = true;
     s.failed = false;
     try {
-      const b64 = await rpc('snap_get', { p_code: state.code, p_id: s.id });
-      if (!b64) throw new Error('Snap not found');
-      s.url = URL.createObjectURL(b64ToBlob(b64, 'image/jpeg'));
+      let blob = await photoCache.get(s.id);
+      if (!blob) {
+        const b64 = await rpc('snap_get', { p_code: state.code, p_id: s.id });
+        if (!b64) throw new Error('Snap not found');
+        blob = b64ToBlob(b64, 'image/jpeg');
+        photoCache.put(s.id, blob);
+      }
+      s.url = URL.createObjectURL(blob);
       s.img = await loadImg(s.url);
       s.w = s.img.naturalWidth;
       s.h = s.img.naturalHeight;
@@ -1778,6 +1900,7 @@
     state.snaps.splice(i, 1);
     if (s.url) setTimeout(() => URL.revokeObjectURL(s.url), 1000);
     store.del(ANN_PREFIX + s.id);
+    if (!s.local) photoCache.del(s.id);
     state.panes.forEach((p, j) => {
       if (p.snap === s) {
         const next = state.snaps[Math.min(i, state.snaps.length - 1)] || null;
@@ -1829,6 +1952,7 @@
     if (firstSync) {
       firstSync = false;
       cleanStaleAnnotations(ids);
+      photoCache.prune(ids);
       if (newest) show(state.snaps[state.snaps.length - 1]);
     } else if (newest) {
       if (!activeSnap() || (state.autoShow && !state.compare && !activePane().cropping)) {
@@ -1878,10 +2002,17 @@
     try { state.channel && state.channel.send({ type: 'broadcast', event, payload }); } catch {}
   }
 
+  function showWho(label) {
+    $('#roomLabel').textContent = label || 'Signed in';
+    $('#whoBtn').classList.remove('hidden');
+  }
+
   let started = false;
-  async function start(code) {
+  async function start(code, label) {
     state.code = code;
     setLive('wait', 'Connecting…');
+    if (label !== undefined) showWho(label);
+    else rpc('snap_check', { p_code: code }).then(showWho).catch(() => {});
     if (started) { sync(); return; }
     started = true;
     await sync();
@@ -1905,9 +2036,8 @@
     try {
       const label = await rpc('snap_check', { p_code: code });
       if ($('#gateRemember').checked) store.set(CODE_KEY, code);
-      $('#roomLabel').textContent = label || '';
       $('#gate').classList.add('hidden');
-      start(code);
+      start(code, label);
     } catch (err) {
       $('#gateErr').textContent = friendlyError(err);
     } finally {
@@ -1917,6 +2047,23 @@
   $('#gateSkip').onclick = () => {
     $('#gate').classList.add('hidden');
     setLive('', 'Laptop only');
+  };
+
+  // Switch teacher: forget the passcode and wipe everything this board kept
+  // locally (annotations, cached photos), then start again at the passcode screen.
+  $('#whoBtn').onclick = () => {
+    confirmBox(
+      'Switch teacher?',
+      'This signs this board out and clears the snaps, annotations and cached photos stored on this laptop. Your snaps stay in the cloud until you end the lesson or 12 hours pass. Save anything you want to keep first.',
+      'Sign out',
+      true,
+      async () => {
+        store.del(CODE_KEY);
+        for (const k of store.keys()) if (k.startsWith(ANN_PREFIX)) store.del(k);
+        await photoCache.clear();
+        location.reload();
+      }
+    );
   };
 
   // ---------------------------------------------------------------------
@@ -2303,6 +2450,7 @@
     }
     for (const s of [...state.snaps]) removeSnap(s);
     for (const k of store.keys()) if (k.startsWith(ANN_PREFIX)) store.del(k);
+    await photoCache.clear();
     if (state.compare) setCompare(false);
     toast('Lesson ended: snaps deleted from the cloud');
   }
@@ -2418,6 +2566,13 @@
     if ((e.ctrlKey || e.metaKey) && k === 'z') { e.preventDefault(); e.shiftKey ? redo() : undo(); return; }
     if ((e.ctrlKey || e.metaKey) && k === 'y') { e.preventDefault(); redo(); return; }
     if ((e.ctrlKey || e.metaKey) && k === 'd' && activePane().sel) { e.preventDefault(); selAction('dup'); return; }
+    // Ctrl + / − / 0 zoom the photo, not the browser
+    if ((e.ctrlKey || e.metaKey) && (k === '+' || k === '=' || k === '-' || k === '0')) {
+      e.preventDefault();
+      const p = activePane();
+      if (k === '0') p.fit(); else p.zoomAt(p.cw / 2, p.ch / 2, k === '-' ? 1 / 1.4 : 1.4);
+      return;
+    }
     if (e.ctrlKey || e.metaKey || e.altKey) return;
     if (e.key === 'ArrowLeft') { step(-1); e.preventDefault(); }
     else if (e.key === 'ArrowRight') { step(1); e.preventDefault(); }
@@ -2440,6 +2595,20 @@
       if (t) setTool(t.id);
     }
   });
+
+  // ----- Never let the browser zoom the whole page -----
+  // Touchscreen drivers (and trackpads) can send pinches as Ctrl+wheel; route
+  // those to the photo under the fingers, and block them everywhere else.
+  document.addEventListener('wheel', (e) => {
+    if (!e.ctrlKey) return;
+    e.preventDefault();
+    if (e.target.tagName === 'CANVAS') return; // the pane's own handler zooms the photo
+    const p = activePane();
+    if (p && p.snap) p.zoomAt(p.cw / 2, p.ch / 2, Math.exp(-e.deltaY * 0.01));
+  }, { passive: false });
+  // Belt and braces for touch: a two-finger gesture outside the photo does nothing.
+  document.addEventListener('touchmove', (e) => { if (e.touches.length > 1) e.preventDefault(); }, { passive: false });
+  ['gesturestart', 'gesturechange'].forEach((t) => document.addEventListener(t, (e) => e.preventDefault()));
 
   window.addEventListener('beforeunload', () => {
     for (const s of state.snaps) if (!s.local && (s.anns.length || s.rotation || s.crop)) store.set(ANN_PREFIX + s.id, { anns: s.anns, rotation: s.rotation, crop: s.crop });
@@ -2476,7 +2645,7 @@
   }
 
   // Exposed for troubleshooting from the browser console.
-  window.snapBoard = { state, addLocal, addPage };
+  window.snapBoard = { state, addLocal, addPage, photoCache };
 
   boot();
 })();

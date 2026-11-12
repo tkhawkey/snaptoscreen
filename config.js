@@ -13,7 +13,8 @@ window.SNAP_CONFIG = {
   appName: 'Snap to Screen',
 
   // Photo size sent from the phone (longest edge, pixels) and JPEG quality.
-  // 1600 / 0.8 gives roughly 300–450 KB per photo.
-  maxImageSize: 1600,
-  jpegQuality: 0.8,
+  // 1400 / 0.75 gives roughly 200–300 KB per photo, still sharp on a board.
+  // (Was 1600 / 0.8, about 300–450 KB.)
+  maxImageSize: 1400,
+  jpegQuality: 0.75,
 };

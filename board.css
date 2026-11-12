@@ -1,3 +1,12 @@
+/* Handwriting font, hosted with the app (no Google Fonts request). */
+@font-face {
+  font-family: "Patrick Hand";
+  src: url("vendor/patrick-hand.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
 /* Board page – dark chrome so photos stand out when projected.
    Brand colours are placeholders: change --brand / --accent to CIS colours. */
 :root {
@@ -33,6 +42,10 @@ svg.i { width: 24px; height: 24px; flex: none; }
 .mark { background: var(--brand); color: #fff; font-weight: 800; border-radius: 8px; padding: 5px 10px; letter-spacing: .04em; border: 1px solid #ffffff22; }
 .app-name { font-weight: 700; font-size: 17px; }
 .room { color: var(--muted); margin-left: 6px; }
+.who { display: inline-flex; align-items: center; gap: 8px; height: 38px; padding: 0 12px; margin-left: 6px; border-radius: 99px; border: 1px solid var(--line); background: var(--panel-2); color: var(--text); font-weight: 600; }
+.who small { color: var(--muted); font-weight: 400; border-left: 1px solid var(--line); padding-left: 8px; }
+.who:hover { border-color: #3d5068; }
+.hint-inline { color: var(--muted); font-size: 13px; }
 .live { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--muted); background: var(--panel-2); padding: 4px 10px; border-radius: 99px; margin-left: 6px; }
 .live i { width: 9px; height: 9px; border-radius: 50%; background: #6b7280; }
 .live.on i { background: var(--ok); box-shadow: 0 0 0 3px #22c55e33; }
@@ -176,6 +189,22 @@ svg.i { width: 24px; height: 24px; flex: none; }
 .seg.cols .sw span { width: 26px; height: 26px; border-radius: 50%; border: 2px solid #ffffff55; }
 .txt-prev { margin-top: 12px; background: repeating-conic-gradient(#d7dde4 0 25%, #eef1f4 0 50%) 0 0 / 20px 20px; border-radius: 10px; padding: 14px; min-height: 70px; display: flex; align-items: center; overflow: hidden; }
 .txt-prev span { white-space: pre-wrap; padding: 2px 8px; border-radius: 8px; line-height: 1.2; max-width: 100%; overflow-wrap: anywhere; }
+
+/* ---------- Stop the browser itself zooming on a touchscreen ----------
+   Pinch zoom belongs to the photo (handled in board.js). Scrolling areas
+   are still allowed to pan in their own direction. */
+html, body { touch-action: none; overscroll-behavior: none; }
+#strip { touch-action: pan-x; }
+#toolbar, .modal, .popover { touch-action: pan-y; }
+
+/* ---------- Size slider ---------- */
+#sizePop { width: 320px; }
+#sizePop .pop-h { display: flex; justify-content: space-between; }
+#sizePop .pop-h span { text-transform: none; letter-spacing: 0; color: var(--text); font-weight: 600; }
+#sizePreview { display: block; width: calc(100% - 12px); height: 120px; margin: 6px; border-radius: 10px; }
+#sizeRange { width: calc(100% - 24px); margin: 10px 12px 4px; height: 36px; accent-color: var(--sel); cursor: pointer; }
+.size-custom { position: relative; }
+.size-custom .size-num { position: absolute; right: 3px; bottom: 1px; font-size: 11px; color: var(--text); }
 
 /* Smaller screens (laptop not on the board) */
 @media (max-width: 1100px) {

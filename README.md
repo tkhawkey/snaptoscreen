@@ -51,6 +51,7 @@ Upload the whole `snap-to-screen` folder to Netlify (drag and drop it onto **Sit
 | Eraser | Tap or drag over a mark to remove it. |
 | Spotlight | Drag a circle (or just tap) and everything else is dimmed. Drag inside the circle to move it, or drag a new one. Use **Turn off** at the top (or Esc) to remove it. |
 | Laser pointer | Point without leaving marks. The red trail fades after a second. |
+| Sizes | Thin / medium / thick, or the slider button for any size from 1 to 40 px, with a live preview in the current colour. With a mark selected, a new size also resizes that mark. |
 | Undo / redo / hide / clear | Bottom of the toolbar. Annotations are kept separately for each snap. |
 
 **Bottom-right buttons:** zoom out, fit, zoom in, rotate, **crop** (drag the corners, then **Done**, or **Reset** to undo the crop), **grid** (tap repeatedly for medium, small or large squares, then off), and delete.
@@ -69,14 +70,21 @@ Keyboard: ← → previous/next · F full screen · H hide annotations · R rota
 
 Saved images include crops, rotation and any covers that are still hidden. They leave out the grid, spotlight and laser.
 
+## Several teachers
+Each passcode is its own "room": a teacher only ever sees their own snaps. Add one line per teacher to `snap_rooms` (see the separate rollout pack). On a shared classroom laptop, leave "Remember on this laptop" unticked, and press your name at the top (**Switch**) at the end. That signs the board out and clears everything it stored locally.
+
+## Removing it
+`supabase/uninstall.sql` removes all photos, passcodes, functions and the clean-up job from a Supabase project, and touches nothing else.
+
 ## Privacy and automatic deletion
 - Photos are deleted when you press **End lesson**. Anything older than **12 hours** is also deleted whenever the phone or board is used, and every hour if you ran `2-hourly-cleanup.sql`.
 - The photo tables have no public access at all. The only way in is through the `snap_*` functions, and each one checks the passcode. Wrong guesses are slowed down.
 - Keep faces out of shot, and use **Redact** to cover names.
-- Annotations are remembered in the board browser until the lesson ends, so an accidental refresh doesn't lose them.
+- Annotations, and copies of photos already downloaded, are kept in the board's browser so an accidental refresh doesn't lose them or download them again. They follow the same 12-hour limit, and are cleared by **End lesson** and **Switch**.
+- The pages load nothing from Google Fonts or public CDNs. The font and code libraries are in `vendor/` (licences in `vendor/LICENSES.md`), so only GitHub Pages and Supabase are contacted.
 
 ## Supabase footprint
-Each photo is about 300–450 KB. Photos are stored as encoded text in the database rather than in Storage, which keeps setup to a single SQL file and makes deletion reliable. Even at about 30 snaps a day, you'd add roughly 250 MB of egress a month (5 GB allowance). Database use stays at a few MB because photos are deleted after the lesson. There are no Edge Functions.
+Each photo is about 200–300 KB (1400 px, set in `config.js`). Photos are stored as encoded text in the database rather than in Storage, which keeps setup to a single SQL file and makes deletion reliable. Each photo is downloaded once per board, because the board keeps a copy. At about 30 snaps a day that's roughly 200 MB of egress a month (5 GB allowance). Database use stays at a few MB because photos are deleted after the lesson. There are no Edge Functions.
 
 ## Changing things
 - **Branding**: change `schoolShort` / `appName` in `config.js`, and `--brand` / `--accent` at the top of `board.css` and `phone.html`.
@@ -86,7 +94,7 @@ Each photo is about 300–450 KB. Photos are stored as encoded text in the datab
   then sign out on the phone and enter the new one. On the board, clear the site data or use the gate when it reappears.
 
 ## Updating the site (GitHub Pages)
-GitHub Pages lets browsers keep files for about 10 minutes. The pages load their scripts as `board.js?v=3` and so on. Whenever you upload changed files, raise that number in `board.html` and `phone.html` (currently `?v=6`) so browsers fetch the new versions together. After uploading, wait for the Pages build to finish (repo → **Actions** shows a green tick), then press **Ctrl+F5** on the board.
+GitHub Pages lets browsers keep files for about 10 minutes. The pages load their scripts as `board.js?v=3` and so on. Whenever you upload changed files, raise that number in `board.html` and `phone.html` (currently `?v=8`) so browsers fetch the new versions together. After uploading, wait for the Pages build to finish (repo → **Actions** shows a green tick), then press **Ctrl+F5** on the board.
 
 ## Troubleshooting
 | Symptom | Fix |

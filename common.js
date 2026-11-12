@@ -1,7 +1,7 @@
 // Shared helpers for the phone and board pages.
 (function () {
   const CFG = Object.assign(
-    { supabaseUrl: '', supabaseAnonKey: '', schoolShort: 'CIS', appName: 'Snap to Screen', maxImageSize: 1600, jpegQuality: 0.8 },
+    { supabaseUrl: '', supabaseAnonKey: '', schoolShort: 'CIS', appName: 'Snap to Screen', maxImageSize: 1400, jpegQuality: 0.75 },
     window.SNAP_CONFIG || {}
   );
 

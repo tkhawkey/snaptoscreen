@@ -2,18 +2,15 @@
 <html lang="en-GB">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
 <title>Snap to Screen – Board</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Patrick+Hand&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="board.css?v=6">
+<link rel="stylesheet" href="board.css?v=8">
 </head>
 <body>
 <div id="app">
   <header id="topbar">
     <div class="brand"><span class="mark" id="mark">CIS</span><span class="app-name" id="appName">Snap to Screen</span></div>
-    <span class="room" id="roomLabel"></span>
+    <button class="who hidden" id="whoBtn" title="Switch teacher / sign out of this board"><span id="roomLabel"></span><small>Switch</small></button>
     <span class="live" id="live"><i></i><span>Offline</span></span>
     <div class="spacer"></div>
     <button class="tb toggle" id="autoBtn" data-icon="bolt" title="Show new snaps automatically">Auto-show</button>
@@ -106,7 +103,7 @@
     <h2>Board passcode</h2>
     <p>Enter the same passcode you use on your phone.</p>
     <input id="gateCode" type="password" placeholder="Passcode" required>
-    <label class="check"><input type="checkbox" id="gateRemember" checked> Remember on this laptop</label>
+    <label class="check"><input type="checkbox" id="gateRemember"> Remember on this laptop <span class="hint-inline">(only tick this on a laptop no other teacher uses)</span></label>
     <div class="err" id="gateErr"></div>
     <div class="row"><button type="button" class="btn ghost" id="gateSkip">Use without phone</button><button class="btn primary" id="gateGo">Connect</button></div>
   </form>
@@ -156,14 +153,21 @@
 
 <div class="popover stamps hidden" id="stampPop"></div>
 
+<div class="popover hidden" id="sizePop">
+  <div class="pop-h">Size <span id="sizeVal"></span></div>
+  <canvas id="sizePreview"></canvas>
+  <input type="range" id="sizeRange" step="1" aria-label="Pen and shape size">
+  <p class="pop-note">Changes the pen, highlighter, lines and shapes, and how big new stamps are. If a mark is selected, it resizes that too.</p>
+</div>
+
 <input type="file" id="fileInput" accept="image/*" multiple hidden>
 <div id="toast"></div>
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-<script src="config.js?v=6"></script>
-<script src="common.js?v=6"></script>
-<script src="board.js?v=6"></script>
+<script src="vendor/supabase.js?v=2.45.4"></script>
+<script src="vendor/jszip.min.js?v=3.10.1"></script>
+<script src="vendor/qrcode.min.js?v=1.0.0"></script>
+<script src="config.js?v=8"></script>
+<script src="common.js?v=8"></script>
+<script src="board.js?v=8"></script>
 </body>
 </html>
