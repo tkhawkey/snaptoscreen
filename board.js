@@ -8,7 +8,6 @@
   const LABEL_KEY = 'snap.board.lessonLabel';
   const STYLE_KEY = 'snap.board.textStyle';
   const ANN_PREFIX = 'snap.ann.';
-  const POLL_MS = 15000;
 
   const FONTS = {
     sans: { name: 'Clean', css: '"Segoe UI", Arial, sans-serif' },
@@ -1986,7 +1985,7 @@
       try {
         const rows = (await rpc('snap_list', { p_code: state.code })) || [];
         applyList(rows);
-        if (!state.channelLive) setLive('wait', 'Checking every 15 s');
+        if (!state.channelLive) setLive('wait', 'Connecting… (checking every 3 s)');
       } catch (e) {
         console.warn(e);
         setLive('bad', /passcode/i.test(e.message) ? 'Wrong passcode' : 'Offline');
@@ -2042,23 +2041,56 @@
     $('span', el).textContent = text;
   }
 
+  // Live connection. If it isn't up within a few seconds, or drops, throw it
+  // away and try again (waiting 3 s, 6 s, 12 s… up to 30 s between tries).
+  let rtTimer = null, rtTries = 0;
+  function scheduleReconnect(delay) {
+    clearTimeout(rtTimer);
+    const d = delay !== undefined ? delay : Math.min(30000, 3000 * 2 ** rtTries++);
+    rtTimer = setTimeout(connectRealtime, d);
+  }
   async function connectRealtime() {
+    clearTimeout(rtTimer);
+    const old = state.channel;
+    state.channel = null;
+    state.channelLive = false;
+    if (old) { try { await sb().removeChannel(old); } catch {} }
     try {
       const name = await channelName(state.code);
       const ch = sb().channel(name, { config: { broadcast: { self: false } } });
+      state.channel = ch;
       ch.on('broadcast', { event: 'new' }, () => sync())
         .on('broadcast', { event: 'deleted' }, () => sync())
         .on('broadcast', { event: 'cleared' }, () => sync())
         .subscribe((status) => {
+          if (state.channel !== ch) return; // an older attempt
           state.channelLive = status === 'SUBSCRIBED';
-          if (status === 'SUBSCRIBED') { setLive('on', 'Live'); sync(); }
-          else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') setLive('wait', 'Reconnecting…');
+          if (status === 'SUBSCRIBED') {
+            rtTries = 0;
+            clearTimeout(rtTimer);
+            setLive('on', 'Live');
+            sync();
+          } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
+            setLive('wait', 'Reconnecting… (checking every 3 s)');
+            scheduleReconnect();
+          }
         });
-      state.channel = ch;
+      // Watchdog: not live after 6 s → start a fresh attempt.
+      rtTimer = setTimeout(() => { if (state.channel === ch && !state.channelLive) scheduleReconnect(0); }, 6000);
     } catch (e) {
       console.warn(e);
-      setLive('wait', 'Checking every 15 s');
+      setLive('wait', 'Checking every 3 s');
+      scheduleReconnect();
     }
+  }
+
+  // Backup check for new snaps: every 3 s while the live connection is down,
+  // every 30 s while it's up. (Only asks "anything new?" – a few hundred bytes.)
+  function pollLoop() {
+    setTimeout(() => {
+      if (!document.hidden) sync();
+      pollLoop();
+    }, state.channelLive ? 30000 : 3000);
   }
 
   function broadcast(event, payload = {}) {
@@ -2078,10 +2110,14 @@
     else rpc('snap_check', { p_code: code }).then(showWho).catch(() => {});
     if (started) { sync(); return; }
     started = true;
+    connectRealtime(); // start the live connection and the first check together
     await sync();
-    connectRealtime();
-    setInterval(() => { if (!document.hidden) sync(); }, POLL_MS);
-    document.addEventListener('visibilitychange', () => { if (!document.hidden) sync(); });
+    pollLoop();
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) return;
+      sync();
+      if (!state.channelLive) connectRealtime();
+    });
   }
 
   // ---------------------------------------------------------------------

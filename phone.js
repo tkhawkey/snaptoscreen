@@ -57,13 +57,13 @@
   });
 
   // ---------- Realtime ------------------------------------------------------
+  // The live connection is started in the background and never waited for:
+  // if it isn't ready (e.g. the phone just woke up), send() goes out as an
+  // ordinary web request instead, which is just as quick.
   async function getChannel() {
     if (channel) return channel;
     channel = sb().channel(await channelName(code), { config: { broadcast: { self: false } } });
-    await new Promise((res) => {
-      const t = setTimeout(res, 3000);
-      channel.subscribe((s) => { if (s === 'SUBSCRIBED') { clearTimeout(t); res(); } });
-    });
+    channel.subscribe();
     return channel;
   }
 
@@ -72,7 +72,7 @@
       const ch = await getChannel();
       await ch.send({ type: 'broadcast', event, payload });
     } catch (e) {
-      console.warn('Realtime notify failed (board will still pick it up within ~15 s)', e);
+      console.warn('Realtime notify failed (the board will still pick it up within a few seconds)', e);
     }
   }
 
